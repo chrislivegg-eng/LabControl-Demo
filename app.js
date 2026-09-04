@@ -33,7 +33,7 @@ document.querySelector('#print-report').addEventListener('click', () => window.p
 const aiPanel = document.querySelector('#ai-panel');
 const aiMessages = document.querySelector('#ai-messages');
 const aiInput = document.querySelector('#ai-input');
-const AI_API_URL = window.LABCONTROL_API_URL || '';
+const AI_API_URL = window.LABCONTROL_API_URL || 'https://labcontrol-ai-server.vercel.app/api/chat';
 
 function addAiMessage(text, role = 'assistant') {
   aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${text}</div>`);
