@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LabControl | Demo</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <section class="login-screen" id="login-view">
+        <div class="login-brand">
+          <img class="header-icon" src="assets/favicon.svg" alt="LabControl" />
+        </div>
+        <div class="login-card">
+          <img class="login-wordmark" src="assets/labcontrol-wordmark.png" alt="Logotipo de LabControl" />
+          <p class="eyebrow">COLEGIO CIUDADANO</p>
+          <h1>Bienvenido al laboratorio</h1>
+          <p>Inicia sesión para acceder al uso responsable de los equipos.</p>
+          <form id="login-form">
+            <label>Usuario<input id="username" value="docente" required /></label>
+            <label>Contraseña<input id="password" type="password" value="demo" required /></label>
+            <button type="submit">Iniciar sesión <span>→</span></button>
+          </form>
+          <p class="privacy-note">Esta demo usa información ficticia. No registra contraseñas, mensajes ni teclas.</p>
+        </div>
+        <p class="login-footer">Colegio Ciudadano · Proyecto de ciencias</p>
+      </section>
+
+      <section class="dashboard hidden" id="dashboard-view">
+        <aside class="sidebar">
+          <div class="sidebar-brand"><div class="brand-mark"><span>✓</span></div><span>Lab<span>Control</span><small>Colegio Ciudadano</small></span></div>
+          <p class="sidebar-caption">Panel del docente</p>
+          <nav>
+            <button class="nav-item active" data-view="dashboard"><span>⌂</span> Inicio</button>
+            <button class="nav-item" data-view="activity"><span>◷</span> Sesiones</button>
+            <button class="nav-item" data-view="students"><span>♙</span> Usuarios</button>
+            <button class="nav-item" data-view="report"><span>▥</span> Reportes</button>
+          </nav>
+          <div class="sidebar-note"><strong>Monitoreo transparente</strong><br />Colegio Ciudadano promueve un uso académico y responsable.</div>
+          <button class="logout" id="logout">Cerrar sesión</button>
+        </aside>
+        <div class="workspace">
+          <header class="topbar">
+            <div><p class="eyebrow">COLEGIO CIUDADANO · DEMO</p><h2 id="page-title">Resumen del laboratorio</h2></div>
+            <div class="teacher"><span class="teacher-dot">P</span><span>Peter<br /><small>Docente</small></span></div>
+          </header>
+
+          <section class="page active" id="dashboard-page">
+            <div class="stats-grid">
+              <article class="stat-card"><span class="stat-icon">▣</span><div><strong>12</strong><p>Sesiones activas</p></div></article>
+              <article class="stat-card"><span class="stat-icon">⌘</span><div><strong>18</strong><p>Equipos conectados</p></div></article>
+              <article class="stat-card alert"><span class="stat-icon">♧</span><div><strong>2</strong><p>Alertas</p></div></article>
+              <article class="stat-card"><span class="stat-icon">◔</span><div><strong>86%</strong><p>Uso académico</p></div></article>
+            </div>
+            <div class="content-grid">
+              <article class="panel activity-panel">
+                <div class="panel-heading"><div><p class="eyebrow">EN VIVO</p><h3>Actividad reciente</h3></div><button class="text-button" data-open="activity">Ver todo</button></div>
+                <div class="table-wrap"><table><thead><tr><th>Estudiante</th><th>Equipo</th><th>Aplicación</th><th>Tiempo</th><th>Estado</th></tr></thead><tbody id="activity-body"></tbody></table></div>
+              </article>
+              <article class="panel chart-panel"><div class="panel-heading"><div><p class="eyebrow">HOY</p><h3>Tiempo por aplicación</h3></div></div><div class="bars" id="app-bars"></div><p class="chart-note">Datos ficticios para la demostración.</p></article>
+            </div>
+          </section>
+
+          <section class="page" id="activity-page"><article class="panel full-panel"><p class="eyebrow">REGISTRO DEMO</p><h3>Actividad del laboratorio</h3><p class="panel-intro">Esta sección recibirá los eventos autorizados desde cada equipo en una fase futura.</p><div class="table-wrap"><table><thead><tr><th>Estudiante</th><th>Equipo</th><th>Aplicación</th><th>Tiempo</th><th>Estado</th></tr></thead><tbody id="activity-full-body"></tbody></table></div></article></section>
+          <section class="page" id="students-page"><article class="panel full-panel"><p class="eyebrow">USUARIOS</p><h3>Estudiantes registrados</h3><div class="students" id="students-list"></div></article></section>
+          <section class="page" id="report-page"><article class="report-card"><p class="eyebrow">REPORTE DE DEMOSTRACIÓN</p><h3>Resumen de Ana López</h3><div class="report-metrics"><div><strong>53 min</strong><span>Sesión total</span></div><div><strong>32 min</strong><span>Microsoft Word</span></div><div><strong>21 min</strong><span>Google Chrome</span></div></div><p>La información mostrada es de ejemplo. El reporte real solo incluiría datos permitidos por la escuela.</p><button id="print-report">Imprimir reporte</button></article></section>
+        </div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
