@@ -29,3 +29,46 @@ document.querySelectorAll('[data-open]').forEach(button => button.addEventListen
 document.querySelector('#login-form').addEventListener('submit', event => { event.preventDefault(); document.querySelector('#login-view').classList.add('hidden'); document.querySelector('#dashboard-view').classList.remove('hidden'); });
 document.querySelector('#logout').addEventListener('click', () => { document.querySelector('#dashboard-view').classList.add('hidden'); document.querySelector('#login-view').classList.remove('hidden'); });
 document.querySelector('#print-report').addEventListener('click', () => window.print());
+
+const aiPanel = document.querySelector('#ai-panel');
+const aiMessages = document.querySelector('#ai-messages');
+const aiInput = document.querySelector('#ai-input');
+
+function addAiMessage(text, role = 'assistant') {
+  aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${text}</div>`);
+  aiMessages.scrollTop = aiMessages.scrollHeight;
+}
+
+function answerAi(question) {
+  const normalized = question.toLowerCase();
+  const alerts = activities.filter(activity => !activity.allowed);
+  const academic = activities.filter(activity => activity.allowed);
+
+  if (normalized.includes('alerta') || normalized.includes('revis')) {
+    return `Detecté <strong>${alerts.length} alerta pendiente</strong>: ${alerts.map(activity => `${activity.name} en ${activity.pc} usó ${activity.app} durante ${activity.time}`).join('. ')}. Recomiendo revisarla con el docente antes de tomar una decisión.`;
+  }
+  if (normalized.includes('módulo') || normalized.includes('modulo') || normalized.includes('categor')) {
+    return `<strong>Módulos identificados:</strong><br><span>Académico:</span> Microsoft Word y PowerPoint (${academic.length} sesiones permitidas).<br><span>Navegación:</span> Google Chrome (uso permitido en la demo).<br><span>Entretenimiento:</span> Minecraft, marcado para revisar. Estos módulos ayudan a explicar el panel sin revisar contenido privado.`;
+  }
+  if (normalized.includes('quien') || normalized.includes('alumno') || normalized.includes('estudiante')) {
+    return `La actividad que requiere atención es la de <strong>Sofia Torres</strong> en ${alerts[0].pc}, por ${alerts[0].app}. El resto de las sesiones visibles están clasificadas como permitidas.`;
+  }
+  return `Resumen del laboratorio: hay <strong>12 sesiones activas</strong>, 18 equipos conectados y 86% de uso académico en los datos de demostración. ${academic.map(activity => `${activity.name} usa ${activity.app}`).join(', ')}. ${alerts.length ? `Hay ${alerts.length} actividad marcada para revisar: ${alerts[0].app}.` : ''}`;
+}
+
+function askAi(question) {
+  const cleanQuestion = question.trim();
+  if (!cleanQuestion) return;
+  addAiMessage(cleanQuestion, 'user');
+  window.setTimeout(() => addAiMessage(answerAi(cleanQuestion)), 260);
+}
+
+document.querySelector('#ai-toggle').addEventListener('click', () => {
+  aiPanel.classList.add('open');
+  aiPanel.setAttribute('aria-hidden', 'false');
+  if (!aiMessages.children.length) addAiMessage('Hola, soy el asistente de LabControl. Puedo resumir la actividad, detectar alertas e identificar módulos de uso.');
+  aiInput.focus();
+});
+document.querySelector('#ai-close').addEventListener('click', () => { aiPanel.classList.remove('open'); aiPanel.setAttribute('aria-hidden', 'true'); });
+document.querySelectorAll('[data-ai-prompt]').forEach(button => button.addEventListener('click', () => askAi(button.dataset.aiPrompt)));
+document.querySelector('#ai-form').addEventListener('submit', event => { event.preventDefault(); askAi(aiInput.value); aiInput.value = ''; });

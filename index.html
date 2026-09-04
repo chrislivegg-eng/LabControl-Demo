@@ -44,7 +44,7 @@
         <div class="workspace">
           <header class="topbar">
             <div><p class="eyebrow">COLEGIO CIUDADANO · DEMO</p><h2 id="page-title">Resumen del laboratorio</h2></div>
-            <div class="teacher"><span class="teacher-dot">P</span><span>Peter<br /><small>Docente</small></span></div>
+            <div class="topbar-actions"><button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span> Asistente IA</button><div class="teacher"><span class="teacher-dot">P</span><span>Peter<br /><small>Docente</small></span></div></div>
           </header>
 
           <section class="page active" id="dashboard-page">
@@ -67,6 +67,13 @@
           <section class="page" id="students-page"><article class="panel full-panel"><p class="eyebrow">USUARIOS</p><h3>Estudiantes registrados</h3><div class="students" id="students-list"></div></article></section>
           <section class="page" id="report-page"><article class="report-card"><p class="eyebrow">REPORTE DE DEMOSTRACIÓN</p><h3>Resumen de Ana López</h3><div class="report-metrics"><div><strong>53 min</strong><span>Sesión total</span></div><div><strong>32 min</strong><span>Microsoft Word</span></div><div><strong>21 min</strong><span>Google Chrome</span></div></div><p>La información mostrada es de ejemplo. El reporte real solo incluiría datos permitidos por la escuela.</p><button id="print-report">Imprimir reporte</button></article></section>
         </div>
+        <aside class="ai-panel" id="ai-panel" aria-hidden="true">
+          <div class="ai-panel-header"><div><p class="eyebrow">LABCONTROL IA</p><h3>Asistente del docente</h3></div><button class="ai-close" id="ai-close" type="button" aria-label="Cerrar asistente">×</button></div>
+          <p class="ai-disclaimer">Analiza únicamente los datos ficticios visibles en esta demo.</p>
+          <div class="ai-messages" id="ai-messages" aria-live="polite"></div>
+          <div class="ai-suggestions"><button type="button" data-ai-prompt="Resume el laboratorio">Resumen del día</button><button type="button" data-ai-prompt="Detecta alertas">Detectar alertas</button><button type="button" data-ai-prompt="Identifica los módulos">Identificar módulos</button></div>
+          <form class="ai-form" id="ai-form"><input id="ai-input" placeholder="Pregunta sobre la actividad..." autocomplete="off" /><button type="submit">Enviar</button></form>
+        </aside>
       </section>
     </main>
     <script src="app.js"></script>
