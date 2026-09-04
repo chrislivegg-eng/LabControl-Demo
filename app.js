@@ -35,8 +35,17 @@ const aiMessages = document.querySelector('#ai-messages');
 const aiInput = document.querySelector('#ai-input');
 const AI_API_URL = window.LABCONTROL_API_URL || 'https://labcontrol-ai-server.vercel.app/api/chat';
 
+function formatAiText(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
 function addAiMessage(text, role = 'assistant') {
-  aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${text}</div>`);
+  aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${formatAiText(text)}</div>`);
   aiMessages.scrollTop = aiMessages.scrollHeight;
 }
 
@@ -46,15 +55,15 @@ function answerAi(question) {
   const academic = activities.filter(activity => activity.allowed);
 
   if (normalized.includes('alerta') || normalized.includes('revis')) {
-    return `Detecté <strong>${alerts.length} alerta pendiente</strong>: ${alerts.map(activity => `${activity.name} en ${activity.pc} usó ${activity.app} durante ${activity.time}`).join('. ')}. Recomiendo revisarla con el docente antes de tomar una decisión.`;
+    return `Detecté **${alerts.length} alerta pendiente**: ${alerts.map(activity => `${activity.name} en ${activity.pc} usó ${activity.app} durante ${activity.time}`).join('. ')}. Recomiendo revisarla con el docente antes de tomar una decisión.`;
   }
   if (normalized.includes('módulo') || normalized.includes('modulo') || normalized.includes('categor')) {
-    return `<strong>Módulos identificados:</strong><br><span>Académico:</span> Microsoft Word y PowerPoint (${academic.length} sesiones permitidas).<br><span>Navegación:</span> Google Chrome (uso permitido en la demo).<br><span>Entretenimiento:</span> Minecraft, marcado para revisar. Estos módulos ayudan a explicar el panel sin revisar contenido privado.`;
+    return `**Módulos identificados:**\nAcadémico: Microsoft Word y PowerPoint (${academic.length} sesiones permitidas).\nNavegación: Google Chrome (uso permitido en la demo).\nEntretenimiento: Minecraft, marcado para revisar. Estos módulos ayudan a explicar el panel sin revisar contenido privado.`;
   }
   if (normalized.includes('quien') || normalized.includes('alumno') || normalized.includes('estudiante')) {
-    return `La actividad que requiere atención es la de <strong>Sofia Torres</strong> en ${alerts[0].pc}, por ${alerts[0].app}. El resto de las sesiones visibles están clasificadas como permitidas.`;
+    return `La actividad que requiere atención es la de **Sofia Torres** en ${alerts[0].pc}, por ${alerts[0].app}. El resto de las sesiones visibles están clasificadas como permitidas.`;
   }
-  return `Resumen del laboratorio: hay <strong>12 sesiones activas</strong>, 18 equipos conectados y 86% de uso académico en los datos de demostración. ${academic.map(activity => `${activity.name} usa ${activity.app}`).join(', ')}. ${alerts.length ? `Hay ${alerts.length} actividad marcada para revisar: ${alerts[0].app}.` : ''}`;
+  return `Resumen del laboratorio: hay **12 sesiones activas**, 18 equipos conectados y 86% de uso académico en los datos de demostración. ${academic.map(activity => `${activity.name} usa ${activity.app}`).join(', ')}. ${alerts.length ? `Hay ${alerts.length} actividad marcada para revisar: ${alerts[0].app}.` : ''}`;
 }
 
 async function askAi(question) {
@@ -79,7 +88,7 @@ async function askAi(question) {
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || 'No fue posible contactar al asistente.');
-    loading.textContent = payload.reply;
+    loading.innerHTML = formatAiText(payload.reply);
   } catch (error) {
     loading.textContent = `${error.message} La demo local seguira disponible.`;
   }
