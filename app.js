@@ -33,6 +33,7 @@ document.querySelector('#print-report').addEventListener('click', () => window.p
 const aiPanel = document.querySelector('#ai-panel');
 const aiMessages = document.querySelector('#ai-messages');
 const aiInput = document.querySelector('#ai-input');
+const AI_API_URL = window.LABCONTROL_API_URL || '';
 
 function addAiMessage(text, role = 'assistant') {
   aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${text}</div>`);
@@ -56,11 +57,32 @@ function answerAi(question) {
   return `Resumen del laboratorio: hay <strong>12 sesiones activas</strong>, 18 equipos conectados y 86% de uso académico en los datos de demostración. ${academic.map(activity => `${activity.name} usa ${activity.app}`).join(', ')}. ${alerts.length ? `Hay ${alerts.length} actividad marcada para revisar: ${alerts[0].app}.` : ''}`;
 }
 
-function askAi(question) {
+async function askAi(question) {
   const cleanQuestion = question.trim();
   if (!cleanQuestion) return;
   addAiMessage(cleanQuestion, 'user');
-  window.setTimeout(() => addAiMessage(answerAi(cleanQuestion)), 260);
+  if (!AI_API_URL) {
+    window.setTimeout(() => addAiMessage(answerAi(cleanQuestion)), 260);
+    return;
+  }
+
+  const loading = document.createElement('div');
+  loading.className = 'ai-message';
+  loading.textContent = 'Analizando la actividad...';
+  aiMessages.append(loading);
+  aiMessages.scrollTop = aiMessages.scrollHeight;
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: cleanQuestion, activities })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No fue posible contactar al asistente.');
+    loading.textContent = payload.reply;
+  } catch (error) {
+    loading.textContent = `${error.message} La demo local seguira disponible.`;
+  }
 }
 
 document.querySelector('#ai-toggle').addEventListener('click', () => {
