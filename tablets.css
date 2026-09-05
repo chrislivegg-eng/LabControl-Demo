@@ -1,0 +1,41 @@
+@media (min-width: 761px) and (max-width: 1180px) {
+  /* Mantener el menú a la izquierda, pero más compacto */
+  .sidebar {
+    width: 240px;
+    padding: 24px 14px;
+  }
+  
+  .sidebar-brand {
+    font-size: 1.1rem;
+  }
+  
+  .nav-item {
+    font-size: 0.85rem;
+    padding: 12px 14px;
+  }
+
+  /* Ajustar el espaciado superior y del contenido */
+  .topbar {
+    padding: 24px 28px;
+  }
+  
+  .page {
+    padding: 24px 28px;
+  }
+
+  /* Ajustar las tarjetas a 2 columnas sin romper la estructura */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  
+  /* El contenido y gráficas toman todo el ancho disponible */
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Ajustar la tabla de estudiantes a 2 columnas */
+  .students {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
