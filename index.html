@@ -7,18 +7,21 @@
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="mobile.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
     <main id="app">
+      <!-- PANTALLA DE LOGIN -->
       <section class="login-screen" id="login-view">
         <div class="login-brand">
           <img class="header-icon" src="assets/favicon.svg" alt="LabControl" />
         </div>
         <div class="login-card">
           <img class="login-wordmark" src="assets/labcontrol-wordmark.png" alt="Logotipo de LabControl" />
-          <p class="eyebrow">COLEGIO CIUDADANO</p>
-          <h1>Bienvenido al laboratorio</h1>
-          <p>Inicia sesión para acceder al uso responsable de los equipos.</p>
+          <p class="eyebrow">COLEGIO CIUDADANO · PORTAL PROFESOR</p>
+          <h1>Supervisión de Equipos</h1>
+          <p>Inicia sesión para gestionar el uso responsable de los equipos de trabajo.</p>
           <form id="login-form">
             <label>Usuario<input id="username" value="docente" required /></label>
             <label>Contraseña<input id="password" type="password" value="demo" required /></label>
@@ -29,59 +32,353 @@
         <p class="login-footer">Colegio Ciudadano · Proyecto de ciencias</p>
       </section>
 
+      <!-- PANEL PRINCIPAL -->
       <section class="dashboard hidden" id="dashboard-view">
-        <aside class="sidebar">
-          <div class="sidebar-brand"><img class="brand-icon" src="assets/favicon.svg" alt="LabControl" /><span>Lab<span>Control</span><small>Colegio Ciudadano</small></span></div>
-          <p class="sidebar-caption">Panel del docente</p>
-          <nav>
-            <button class="nav-item active" data-view="dashboard"><span>⌂</span> Inicio</button>
-            <button class="nav-item" data-view="activity"><span>◷</span> Sesiones</button>
-            <button class="nav-item" data-view="students"><span>♙</span> Usuarios</button>
-            <button class="nav-item" data-view="report"><span>▥</span> Reportes</button>
+        
+        <!-- MENÚ LATERAL -->
+        <aside class="w-[316px] bg-[#0a0a0a] text-gray-400 flex flex-col h-screen border-r border-gray-800">
+          <!-- Logo y Título -->
+          <div class="p-6 mb-2">
+            <div class="flex items-center gap-3">
+              <img class="brand-icon w-10 h-10 object-contain" src="assets/favicon.svg" alt="LabControl" />
+              <div>
+                <h2 class="text-xl font-bold tracking-wide">
+                  <span class="text-white">Lab</span><span class="text-orange-500">Control</span>
+                </h2>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Colegio Ciudadano</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navegación -->
+          <nav class="flex-1 px-4 space-y-1.5">
+            <button class="w-full flex items-center gap-3 nav-item active rounded-xl px-4 py-3 text-sm font-medium transition" data-view="dashboard">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+              Inicio
+            </button>
+            
+            <button class="w-full flex items-center gap-3 nav-item hover:bg-gray-800 hover:text-white rounded-xl px-4 py-3 text-sm font-medium transition" data-view="activity">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              Sesiones
+            </button>
+
+            <button class="w-full flex items-center gap-3 nav-item hover:bg-gray-800 hover:text-white rounded-xl px-4 py-3 text-sm font-medium transition" data-view="report">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              Reportes
+            </button>
+
+            <button class="w-full flex items-center gap-3 nav-item hover:bg-gray-800 hover:text-white rounded-xl px-4 py-3 text-sm font-medium transition" data-view="students">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              Usuarios
+            </button>
           </nav>
-          <div class="sidebar-note"><strong>Monitoreo transparente</strong><br />Colegio Ciudadano promueve un uso académico y responsable.</div>
-          <button class="logout" id="logout">Cerrar sesión</button>
+
+          <!-- Perfil del Docente -->
+          <div class="p-4 mb-2">
+            <div class="flex items-center gap-3 bg-[#18181b] hover:bg-[#27272a] p-3 rounded-xl cursor-pointer transition border border-gray-800">
+              <div class="w-9 h-9 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-white">Docente</p>
+                <p class="text-[11px] text-gray-400 leading-tight">docente@labcontrol.local</p>
+              </div>
+              <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+            
+            <!-- Botón de Cerrar Sesión Estilizado -->
+            <button class="w-full mt-3 bg-transparent hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-800 rounded-xl py-2.5 text-xs font-semibold transition" id="logout">
+              Cerrar sesión
+            </button>
+          </div>
         </aside>
+        
         <div class="workspace">
-          <header class="topbar">
-            <div><p class="eyebrow">COLEGIO CIUDADANO · DEMO</p><h2 id="page-title">Resumen del laboratorio</h2></div>
-            <div class="topbar-actions"><button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span> Asistente IA</button><div class="teacher"><span class="teacher-dot">P</span><span>Peter<br /><small>Docente</small></span></div></div>
+          <!-- BARRA SUPERIOR -->
+          <header class="topbar w-full">
+            <div>
+              <p class="eyebrow">COLEGIO CIUDADANO · DEMO</p>
+              <h2 id="page-title">Resumen del laboratorio</h2>
+            </div>
+            <div class="topbar-actions">
+              <button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span>Asistente IA</button>
+            </div>
           </header>
 
+          <!-- PESTAÑA INICIO -->
           <section class="page active" id="dashboard-page">
-            <div class="stats-grid">
-              <article class="stat-card"><span class="stat-icon">▣</span><div><strong>12</strong><p>Sesiones activas</p></div></article>
-              <article class="stat-card"><span class="stat-icon">⌘</span><div><strong>18</strong><p>Equipos conectados</p></div></article>
-              <article class="stat-card alert"><span class="stat-icon">♧</span><div><strong>2</strong><p>Alertas</p></div></article>
-              <article class="stat-card"><span class="stat-icon">◔</span><div><strong>86%</strong><p>Uso académico</p></div></article>
-            </div>
-            <div class="content-grid">
-              <article class="panel activity-panel">
-                <div class="panel-heading"><div><p class="eyebrow">EN VIVO</p><h3>Actividad reciente</h3></div><button class="text-button" data-open="activity">Ver todo</button></div>
-                <div class="table-wrap"><table><thead><tr><th>Estudiante</th><th>Equipo</th><th>Aplicación</th><th>Tiempo</th><th>Estado</th></tr></thead><tbody id="activity-body"></tbody></table></div>
-              </article>
-              <article class="panel chart-panel"><div class="panel-heading"><div><p class="eyebrow">HOY</p><h3>Tiempo por aplicación</h3></div></div><div class="bars" id="app-bars"></div><p class="chart-note">Datos ficticios para la demostración.</p></article>
+            <div>
+              <!-- Encabezado de la sección con diseño adaptable a móviles -->
+              <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-4">
+                <!-- Botón de Actualizar Datos -->
+                <button onclick="actualizarDatosDashboard()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-orange-500/15 flex items-center justify-center gap-2 transition transform active:scale-95 w-full sm:w-auto">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  Actualizar datos
+                </button>
+
+                <!-- Selector de Fecha -->
+                <button class="bg-white border border-gray-100 px-4 py-2.5 rounded-xl text-xs sm:text-sm text-gray-700 font-semibold shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition w-full sm:w-auto">
+                  <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  <span class="truncate">Hoy, 4 de septiembre de 2026</span>
+                  <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+              </div>
+
+              <!-- Grid de Métricas Principales Estilizado -->
+              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                <!-- Tarjeta 1 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
+                  <div class="absolute -right-4 -bottom-4 text-orange-500/5 group-hover:text-orange-500/10 transition">
+                    <svg class="w-28 h-28" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/></svg>
+                  </div>
+                  <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                  </div>
+                  <div>
+                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">12</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Sesiones activas</span>
+                  </div>
+                </div>
+
+                <!-- Tarjeta 2 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
+                  <div class="absolute -right-4 -bottom-4 text-orange-500/5 group-hover:text-orange-500/10 transition">
+                    <svg class="w-28 h-28" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                  </div>
+                  <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                  </div>
+                  <div>
+                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">18</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Equipos conectados</span>
+                  </div>
+                </div>
+
+                <!-- Tarjeta 3 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
+                  <div class="absolute -right-4 -bottom-4 text-orange-500/5 group-hover:text-orange-500/10 transition">
+                    <svg class="w-28 h-28" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                  </div>
+                  <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                  </div>
+                  <div>
+                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">2</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Alertas</span>
+                  </div>
+                </div>
+
+                <!-- Tarjeta 4 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
+                  <div class="absolute -right-4 -bottom-4 text-orange-500/5 group-hover:text-orange-500/10 transition">
+                    <svg class="w-28 h-28" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                  </div>
+                  <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                  </div>
+                  <div>
+                    <span class="text-4xl font-black text-orange-600 tracking-tight block mb-1">86%</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Uso académico</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Grid Inferior -->
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- Actividad reciente -->
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col justify-between">
+                  <div>
+                    <h2 class="text-lg font-black text-gray-900 mb-6">Actividad reciente</h2>
+                    <div class="overflow-x-auto">
+                      <table class="w-full text-left border-collapse">
+                        <thead>
+                          <tr class="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            <th class="pb-3 px-2">Estudiante</th>
+                            <th class="pb-3 px-2">Equipo</th>
+                            <th class="pb-3 px-2">Aplicación</th>
+                            <th class="pb-3 px-2">Tiempo</th>
+                            <th class="pb-3 px-2">Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50 text-sm text-gray-700" id="activity-body">
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="mt-8 pt-4 border-t border-gray-100 text-center">
+                    <a href="#" onclick="verTodasLasActividades()" class="inline-flex items-center gap-2 text-sm font-bold text-orange-500 hover:text-orange-600 transition">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                      </svg>
+                      Ver todas las actividades
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Tiempo por aplicación -->
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col justify-between">
+                  <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-black text-gray-900">Tiempo por aplicación</h2>
+                    <select class="bg-gray-50 border border-gray-200 text-sm font-semibold rounded-xl px-3 py-2 text-gray-600 focus:outline-none focus:border-orange-500 transition">
+                      <option>Hoy</option>
+                      <option>Esta semana</option>
+                    </select>
+                  </div>
+                  <div class="relative h-64 w-full" id="app-bars">
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
-          <section class="page" id="activity-page"><article class="panel full-panel"><p class="eyebrow">REGISTRO DEMO</p><h3>Actividad del laboratorio</h3><p class="panel-intro">Esta sección recibirá los eventos autorizados desde cada equipo en una fase futura.</p><div class="table-wrap"><table><thead><tr><th>Estudiante</th><th>Equipo</th><th>Aplicación</th><th>Tiempo</th><th>Estado</th></tr></thead><tbody id="activity-full-body"></tbody></table></div></article></section>
-          <section class="page" id="students-page"><article class="panel full-panel"><p class="eyebrow">USUARIOS</p><h3>Estudiantes registrados</h3><div class="students" id="students-list"></div></article></section>
-          <section class="page" id="report-page"><article class="report-card"><p class="eyebrow">REPORTE DE DEMOSTRACIÓN</p><h3>Resumen de Ana López</h3><div class="report-metrics"><div><strong>53 min</strong><span>Sesión total</span></div><div><strong>32 min</strong><span>Microsoft Word</span></div><div><strong>21 min</strong><span>Google Chrome</span></div></div><p>La información mostrada es de ejemplo. El reporte real solo incluiría datos permitidos por la escuela.</p><button id="print-report">Imprimir reporte</button></article></section>
+          <!-- OTRAS SECCIONES -->
+          <section class="page" id="activity-page">
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden transition-all duration-300">
+              <!-- Franja superior decorativa -->
+              <div class="h-2.5 bg-gradient-to-r from-orange-600 to-orange-400 w-full"></div>
+              
+              <div class="p-8 sm:p-10">
+                <div class="table-wrap overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead>
+                      <tr class="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        <th class="pb-3 px-2">Estudiante</th>
+                        <th class="pb-3 px-2">Equipo</th>
+                        <th class="pb-3 px-2">Aplicación</th>
+                        <th class="pb-3 px-2">Tiempo</th>
+                        <th class="pb-3 px-2">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 text-sm text-gray-700" id="activity-full-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section class="page" id="students-page">
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden transition-all duration-300">
+              <!-- Franja superior decorativa -->
+              <div class="h-2.5 bg-gradient-to-r from-orange-600 to-orange-400 w-full"></div>
+              
+              <div class="p-8 sm:p-10">
+                <!-- Cuadrícula estilizada de estudiantes directamente -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="students-list"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="page" id="report-page">
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden transition-all duration-300">
+              <!-- Franja superior decorativa -->
+              <div class="h-2.5 bg-gradient-to-r from-orange-600 to-orange-400 w-full"></div>
+              
+              <div class="p-8 sm:p-10">
+                <!-- Cabecera con selector -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-gray-100 mb-8">
+                  <div>
+                    <span class="text-xs font-bold text-orange-600 tracking-widest uppercase block mb-1">Reporte de Demostracion</span>
+                    <h3 id="report-student-title" class="text-2xl font-black text-gray-900 tracking-tight">Resumen de Ana López</h3>
+                  </div>
+                  <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <select id="student-report-select" class="bg-gray-50 border border-gray-200 text-sm font-semibold rounded-xl px-4 py-2.5 text-gray-700 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition w-full sm:w-auto">
+                      <option value="Ana Lopez">Ana López</option>
+                      <option value="Carlos Ruiz">Carlos Ruiz</option>
+                      <option value="Sofia Torres">Sofia Torres</option>
+                      <option value="Diego Martinez">Diego Martínez</option>
+                    </select>
+                    <!-- Botón de impresión visible en todos los tamaños -->
+                    <button id="print-report" class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-orange-500/20 transition transform active:scale-95 shrink-0">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                      Imprimir
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Cuadrícula de Métricas Estilizada -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8" id="report-metrics-container">
+                  <div class="bg-orange-50/60 border border-orange-100/80 p-6 rounded-2xl flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 text-orange-500/10">
+                      <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                    </div>
+                    <span class="text-3xl font-black text-orange-600 tracking-tight mb-1" id="rep-total">53 min</span>
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Sesión total</span>
+                  </div>
+
+                  <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex flex-col justify-center">
+                    <span class="text-3xl font-black text-gray-900 tracking-tight mb-1" id="rep-app1">32 min</span>
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider" id="rep-app1-name">Microsoft Word</span>
+                  </div>
+
+                  <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex flex-col justify-center">
+                    <span class="text-3xl font-black text-gray-900 tracking-tight mb-1" id="rep-app2">21 min</span>
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider" id="rep-app2-name">Google Chrome</span>
+                  </div>
+                </div>
+
+                <!-- Nota inferior -->
+                <div class="pt-6 border-t border-gray-100">
+                  <p class="text-xs text-gray-400 text-center sm:text-left leading-relaxed">
+                    La información mostrada es de ejemplo. El reporte real solo incluiría datos permitidos por la escuela.
+                  </p>
+                </div>
+              </div>
+            </article>
+          </section>
         </div>
+        
+        <!-- NAVEGACIÓN MÓVIL -->
         <nav class="mobile-nav" aria-label="Navegación móvil">
-          <button class="nav-item active" data-view="dashboard" type="button"><span>⌂</span>Inicio</button>
-          <button class="nav-item" data-view="activity" type="button"><span>◷</span>Sesiones</button>
-          <button class="nav-item" data-view="students" type="button"><span>♙</span>Usuarios</button>
-          <button class="nav-item" data-view="report" type="button"><span>▥</span>Reportes</button>
+          <button class="nav-item active" data-view="dashboard" type="button">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            Inicio
+          </button>
+          
+          <button class="nav-item" data-view="activity" type="button">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            Sesiones
+          </button>
+
+          <button class="nav-item" data-view="report" type="button">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            Reportes
+          </button>
+
+          <button class="nav-item" data-view="students" type="button">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            Usuarios
+          </button>
         </nav>
-        <aside class="ai-panel" id="ai-panel" aria-hidden="true">
-          <div class="ai-panel-header"><div><p class="eyebrow">LABCONTROL IA</p><h3>Asistente del docente</h3></div><button class="ai-close" id="ai-close" type="button" aria-label="Cerrar asistente">×</button></div>
-          <p class="ai-disclaimer">Analiza únicamente los datos ficticios visibles en esta demo.</p>
-          <div class="ai-messages" id="ai-messages" aria-live="polite"></div>
-          <div class="ai-suggestions"><button type="button" data-ai-prompt="Resume el laboratorio">Resumen del día</button><button type="button" data-ai-prompt="Detecta alertas">Detectar alertas</button><button type="button" data-ai-prompt="Identifica los módulos">Identificar módulos</button></div>
-          <form class="ai-form" id="ai-form"><input id="ai-input" placeholder="Pregunta sobre la actividad..." autocomplete="off" /><button type="submit">Enviar</button></form>
-        </aside>
       </section>
+
+      <!-- ASISTENTE IA (Movido al nivel raíz de #app para evitar bloqueos por z-index o contenedores) -->
+      <aside class="ai-panel" id="ai-panel" aria-hidden="true">
+        <div class="ai-panel-header">
+          <div>
+            <p class="eyebrow">LABCONTROL IA</p>
+            <h3>Asistente del docente</h3>
+          </div>
+          <button class="ai-close" id="ai-close" type="button" aria-label="Cerrar asistente">×</button>
+        </div>
+        <p class="ai-disclaimer">Analiza únicamente los datos ficticios visibles en esta demo.</p>
+        <div class="ai-messages" id="ai-messages" aria-live="polite"></div>
+        <div class="ai-suggestions">
+          <button type="button" data-ai-prompt="Resume el laboratorio">Resumen del día</button>
+          <button type="button" data-ai-prompt="Detecta alertas">Detectar alertas</button>
+          <button type="button" data-ai-prompt="Identifica los módulos">Identificar módulos</button>
+        </div>
+        <form class="ai-form" id="ai-form">
+          <input id="ai-input" placeholder="Pregunta sobre la actividad..." autocomplete="off" />
+          <button type="submit">Enviar</button>
+        </form>
+      </aside>
     </main>
     <script src="app.js"></script>
   </body>
