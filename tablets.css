@@ -1,4 +1,14 @@
 @media (min-width: 761px) and (max-width: 1180px) {
+  .login-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    display: grid !important;
+    place-items: center !important;
+    overflow-y: auto !important;
+  }
   /* Mantener el menú lateral fijo y compacto */
   .sidebar {
     width: 240px !important;
