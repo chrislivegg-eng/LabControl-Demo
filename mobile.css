@@ -1,7 +1,9 @@
 .mobile-nav{display:none}
 
 @media (max-width:760px){
+  html,body,#app{width:100%;max-width:100%;overflow-x:hidden}
   body{background:#fff}
+  .dashboard,.workspace,.page,.content-grid,.panel{min-width:0;max-width:100%}
   .topbar{min-height:88px;padding:17px 18px}
   .topbar .eyebrow{margin-bottom:5px;font-size:.56rem}
   .topbar h2{max-width:250px;font-size:1.32rem;line-height:1.08}
@@ -15,7 +17,7 @@
   .panel{padding:17px 14px;border-radius:10px}
   .panel h3,.report-card h3{font-size:1.05rem}
   .panel-heading{gap:10px;margin-bottom:14px}
-  .table-wrap{margin:0 -14px;padding:0 14px}
+  .table-wrap{max-width:calc(100vw - 32px);margin:0 -14px;padding:0 14px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
   table{min-width:560px;font-size:.75rem}
   th{padding:11px 9px}
   td{padding:12px 9px}
