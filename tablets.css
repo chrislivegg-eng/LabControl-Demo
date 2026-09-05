@@ -1,8 +1,9 @@
 @media (min-width: 761px) and (max-width: 1180px) {
-  /* Mantener el menú a la izquierda, pero más compacto */
+  /* Mantener el menú lateral fijo y compacto */
   .sidebar {
-    width: 240px;
-    padding: 24px 14px;
+    width: 240px !important;
+    padding: 24px 14px !important;
+    flex-shrink: 0 !important;
   }
   
   .sidebar-brand {
@@ -14,28 +15,47 @@
     padding: 12px 14px;
   }
 
-  /* Ajustar el espaciado superior y del contenido */
-  .topbar {
-    padding: 24px 28px;
-  }
-  
-  .page {
-    padding: 24px 28px;
+  /* Asegurar que el área de trabajo tome exactamente el espacio restante */
+  .workspace {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: calc(100% - 240px) !important;
   }
 
-  /* Ajustar las tarjetas a 2 columnas sin romper la estructura */
+  .topbar, .page {
+    padding: 24px 28px !important;
+    width: 100% !important;
+  }
+
+  /* Tarjetas superiores en 2 columnas perfectas */
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
   }
   
-  /* El contenido y gráficas toman todo el ancho disponible */
+  /* CLAVE: Forzar la tabla y la gráfica a ocupar el 100% del ancho, una sobre otra */
   .content-grid {
-    grid-template-columns: 1fr;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    gap: 18px;
   }
-  
-  /* Ajustar la tabla de estudiantes a 2 columnas */
+
+  .panel {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Protección contra desbordamiento: si la tabla es muy ancha, se desliza sin romper la pantalla */
+  .table-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Lista de usuarios en 2 columnas */
   .students {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
