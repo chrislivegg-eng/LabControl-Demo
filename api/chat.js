@@ -36,14 +36,19 @@ ${JSON.stringify(activities)}
 
 Pregunta del docente: ${question}`;
 
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-goog-api-key': process.env.GEMINI_API_KEY
       },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 320, temperature: 0.4 }
+      })
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload?.error?.message || 'Gemini no pudo responder.');

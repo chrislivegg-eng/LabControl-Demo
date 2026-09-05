@@ -211,7 +211,8 @@ async function askAi(question) {
     if (!response.ok) throw new Error(payload.error || 'No fue posible contactar al asistente.');
     loading.innerHTML = formatAiText(payload.reply);
   } catch (error) {
-    loading.textContent = `${error.message} La demo local seguira disponible.`;
+    const fallback = answerAi(cleanQuestion);
+    loading.innerHTML = formatAiText(`**Asistente de demostración activo.** La IA en línea está ocupada o alcanzó su límite temporal, pero LabControl puede seguir ayudándote con los datos ficticios.\n\n${fallback}`);
   }
 }
 
