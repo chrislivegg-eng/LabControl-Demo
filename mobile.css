@@ -1,3 +1,4 @@
+/* mobile.css - Adaptado para celulares, tablets y pantallas táctiles de hasta 1300px */
 .mobile-nav {
   display: none;
 }
@@ -142,7 +143,6 @@
     position: fixed !important;
     inset: 0 !important;
     z-index: 100 !important;
-    overflow-y: auto;
     min-height: 100vh;
     padding: 80px 16px 40px;
     background: linear-gradient(90deg, rgba(0, 0, 0, .85), rgba(0, 0, 0, .4)), url("assets/cyber-lab-background.png") center/cover no-repeat !important;
