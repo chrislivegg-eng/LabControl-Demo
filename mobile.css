@@ -3,7 +3,7 @@
   display: none;
 }
 
-@media (max-width: 1300px) {
+@media (max-width: 1280px) {
   html,
   body,
   #app {
@@ -16,7 +16,6 @@
     background: #fff;
   }
 
-  /* Ocultar el menú lateral de escritorio y activar la barra inferior en cualquier tablet o pantalla táctil ancha */
   .dashboard {
     display: block !important;
     grid-template-columns: 1fr !important;
@@ -78,6 +77,38 @@
     border-radius: 10px;
   }
 
+  /* Versión móvil/tablet del botón IA: Cuadrado limpio sin texto duplicado */
+  .ai-toggle {
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 10px;
+    background: #fff8f4;
+    border: 1px solid #ffc29f;
+    font-size: 0 !important;
+    color: transparent !important;
+    position: relative;
+  }
+
+  .ai-toggle span {
+    display: none !important;
+  }
+
+  .ai-toggle::before {
+    content: "✦" !important;
+    font-size: 1.2rem !important;
+    color: var(--orange-deep) !important;
+    display: block !important;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0 !important;
+  }
+
   .table-wrap {
     width: 100% !important;
     overflow-x: auto;
@@ -89,7 +120,6 @@
     font-size: 0.75rem;
   }
 
-  /* Barra de navegación inferior fija para tablets y pantallas táctiles */
   .mobile-nav {
     position: fixed;
     z-index: 99;
@@ -152,5 +182,82 @@
 
   .login-screen.hidden {
     display: none !important;
+  }
+}
+
+/* Optimización especial para pantallas con altura reducida */
+@media (max-height: 790px) {
+  .ai-toggle {
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 10px;
+    background: #fff8f4;
+    border: 1px solid #ffc29f;
+    font-size: 0 !important;
+    color: transparent !important;
+    position: relative;
+  }
+
+  .ai-toggle span {
+    display: none !important;
+  }
+
+  .ai-toggle::before {
+    content: "✦" !important;
+    font-size: 1.2rem !important;
+    color: var(--orange-deep) !important;
+    display: block !important;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0 !important;
+  }
+
+  .login-screen {
+    padding: 20px 12px !important;
+    justify-content: flex-start !important;
+  }
+
+  .login-card {
+    padding: 24px 18px 18px !important;
+    margin-top: 20px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .login-emblem {
+    width: 54px !important;
+    height: 54px !important;
+    margin: -48px auto 12px !important;
+    font-size: 28px !important;
+  }
+
+  .login-wordmark {
+    width: 140px !important;
+    margin: -2px auto 8px !important;
+  }
+
+  .login-card h1 {
+    font-size: 1.35rem !important;
+  }
+
+  .login-card form {
+    margin-top: 12px !important;
+    gap: 10px !important;
+  }
+
+  .login-card input {
+    height: 42px !important;
+    padding: 0 10px !important;
+  }
+
+  .privacy-note {
+    margin-top: 12px !important;
+    padding: 8px 10px !important;
+    font-size: 0.72rem !important;
   }
 }

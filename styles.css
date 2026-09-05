@@ -62,6 +62,7 @@ button {
 }
 
 .login-screen {
+  min-height: 100vh;
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
@@ -139,12 +140,12 @@ button {
   width: min(490px, 100%);
   z-index: 1;
   position: relative;
-  margin-top: 22px;
-  padding: 46px 50px 32px;
+  margin: auto;
+  padding: 40px 45px 28px;
   text-align: center;
   background: rgba(255, 255, 255, .96);
   border: 1px solid #ebe2dc;
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: 0 20px 55px rgba(0, 0, 0, .48);
 }
 
@@ -658,6 +659,7 @@ td:first-child {
   gap: 18px;
 }
 
+/* Escritorio: Botón de IA normal con texto */
 .ai-toggle {
   display: flex;
   align-items: center;
@@ -849,13 +851,6 @@ td:first-child {
   .login-card h1 {
     font-size: 1.8rem;
   }
-  .ai-toggle {
-    padding: 9px 11px;
-    font-size: 0;
-  }
-  .ai-toggle span {
-    font-size: 1.05rem;
-  }
   .topbar-actions {
     gap: 10px;
   }
@@ -880,7 +875,6 @@ td:first-child {
   scrollbar-color: #ff5a12 #f0eae6;
 }
 
-/* Para navegadores basados en WebKit (Chrome, Safari, Edge, Opera) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
