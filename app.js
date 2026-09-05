@@ -41,6 +41,9 @@ function formatAiText(text) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|\n)\s*\*\s+/g, '$1&bull; ')
+    // Asterisks followed by text are italics; list asterisks have a space after them.
+    .replace(/\*(?![\s*])([^*\n]+?)\*(?!\*)/g, '<em>$1</em>')
     .replace(/\n/g, '<br>');
 }
 
