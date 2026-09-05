@@ -6,6 +6,7 @@
     <title>LabControl | Demo</title>
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="mobile.css" />
   </head>
   <body>
     <main id="app">
@@ -67,6 +68,12 @@
           <section class="page" id="students-page"><article class="panel full-panel"><p class="eyebrow">USUARIOS</p><h3>Estudiantes registrados</h3><div class="students" id="students-list"></div></article></section>
           <section class="page" id="report-page"><article class="report-card"><p class="eyebrow">REPORTE DE DEMOSTRACIÓN</p><h3>Resumen de Ana López</h3><div class="report-metrics"><div><strong>53 min</strong><span>Sesión total</span></div><div><strong>32 min</strong><span>Microsoft Word</span></div><div><strong>21 min</strong><span>Google Chrome</span></div></div><p>La información mostrada es de ejemplo. El reporte real solo incluiría datos permitidos por la escuela.</p><button id="print-report">Imprimir reporte</button></article></section>
         </div>
+        <nav class="mobile-nav" aria-label="Navegación móvil">
+          <button class="nav-item active" data-view="dashboard" type="button"><span>⌂</span>Inicio</button>
+          <button class="nav-item" data-view="activity" type="button"><span>◷</span>Sesiones</button>
+          <button class="nav-item" data-view="students" type="button"><span>♙</span>Usuarios</button>
+          <button class="nav-item" data-view="report" type="button"><span>▥</span>Reportes</button>
+        </nav>
         <aside class="ai-panel" id="ai-panel" aria-hidden="true">
           <div class="ai-panel-header"><div><p class="eyebrow">LABCONTROL IA</p><h3>Asistente del docente</h3></div><button class="ai-close" id="ai-close" type="button" aria-label="Cerrar asistente">×</button></div>
           <p class="ai-disclaimer">Analiza únicamente los datos ficticios visibles en esta demo.</p>
