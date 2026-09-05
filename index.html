@@ -71,6 +71,11 @@
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
               Usuarios
             </button>
+
+            <button class="w-full flex items-center gap-3 nav-item hover:bg-gray-800 hover:text-white rounded-xl px-4 py-3 text-sm font-medium transition" data-view="settings">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              Configuración
+            </button>
           </nav>
 
           <!-- Perfil del Docente -->
@@ -90,7 +95,7 @@
               </svg>
             </div>
             
-            <!-- Botón de Cerrar Sesión Estilizado -->
+            <!-- Botón de Cerrar Sesión -->
             <button class="w-full mt-3 bg-transparent hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-800 rounded-xl py-2.5 text-xs font-semibold transition" id="logout">
               Cerrar sesión
             </button>
@@ -112,7 +117,7 @@
           <!-- PESTAÑA INICIO -->
           <section class="page active" id="dashboard-page">
             <div>
-              <!-- Encabezado de la sección con diseño adaptable a móviles -->
+              <!-- Encabezado de la sección -->
               <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-4">
                 <!-- Botón de Actualizar Datos -->
                 <button onclick="actualizarDatosDashboard()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-orange-500/15 flex items-center justify-center gap-2 transition transform active:scale-95 w-full sm:w-auto">
@@ -125,7 +130,7 @@
                 <!-- Selector de Fecha -->
                 <button class="bg-white border border-gray-100 px-4 py-2.5 rounded-xl text-xs sm:text-sm text-gray-700 font-semibold shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition w-full sm:w-auto">
                   <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  <span class="truncate">Hoy, 4 de septiembre de 2026</span>
+                  <span id="current-date" class="truncate">Hoy, 4 de septiembre de 2026</span>
                   <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
               </div>
@@ -134,8 +139,8 @@
               <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
                 <!-- Tarjeta 1 -->
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
-                  <div class="absolute -right-4 -bottom-4 text-orange-500/5 group-hover:text-orange-500/10 transition">
-                    <svg class="w-28 h-28" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/></svg>
+                  <div class="absolute -right-4 -bottom-4 w-28 h-28 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
+                    <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm2 0v7h12V6H6zm3 10h6v2H9v-2z"/></svg>
                   </div>
                   <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
@@ -148,8 +153,8 @@
 
                 <!-- Tarjeta 2 -->
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
-                  <div class="absolute -right-4 -bottom-4 text-orange-500/5 group-hover:text-orange-500/10 transition">
-                    <svg class="w-28 h-28" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                  <div class="absolute -right-4 -bottom-4 w-28 h-28 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
+                    <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M2 4a2 2 0 012-2h16a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm0 10a2 2 0 012-2h16a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zM4 8h2v2H4V8zm4 0h2v2H8V8zm10 6h-2v2h2v-2zm-4 0h-2v2h2v-2z"/></svg>
                   </div>
                   <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
@@ -162,8 +167,8 @@
 
                 <!-- Tarjeta 3 -->
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
-                  <div class="absolute -right-4 -bottom-4 text-orange-500/5 group-hover:text-orange-500/10 transition">
-                    <svg class="w-28 h-28" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                  <div class="absolute -right-4 -bottom-4 w-28 h-28 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
+                    <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
                   </div>
                   <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
@@ -176,8 +181,8 @@
 
                 <!-- Tarjeta 4 -->
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
-                  <div class="absolute -right-4 -bottom-4 text-orange-500/5 group-hover:text-orange-500/10 transition">
-                    <svg class="w-28 h-28" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                  <div class="absolute -right-4 -bottom-4 w-28 h-28 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
+                    <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
                   </div>
                   <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
@@ -332,6 +337,43 @@
               </div>
             </article>
           </section>
+
+          <!-- Sección de configuración -->
+          <section class="page" id="settings-page">
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden transition-all duration-300">
+              <div class="h-2.5 bg-gradient-to-r from-orange-600 to-orange-400 w-full"></div>
+              <div class="p-8 sm:p-10">
+                <h3 class="text-2xl font-black text-gray-900 tracking-tight mb-6">Ajustes del Laboratorio</h3>
+                
+                <div class="space-y-6">
+                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div>
+                      <h4 class="text-sm font-bold text-gray-900">Bloqueo automático de aplicaciones no permitidas</h4>
+                      <p class="text-xs text-gray-500 mt-0.5">Restringe el uso de juegos y redes sociales automáticamente.</p>
+                    </div>
+                    <input type="checkbox" checked class="w-5 h-5 accent-orange-500 rounded cursor-pointer" />
+                  </div>
+
+                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div>
+                      <h4 class="text-sm font-bold text-gray-900">Alertas de sonido en tiempo real</h4>
+                      <p class="text-xs text-gray-500 mt-0.5">Emitir aviso visual y sonoro cuando un equipo rompa las reglas.</p>
+                    </div>
+                    <input type="checkbox" checked class="w-5 h-5 accent-orange-500 rounded cursor-pointer" />
+                  </div>
+
+                  <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <h4 class="text-sm font-bold text-gray-900 mb-2">Tiempo límite predeterminado de sesión</h4>
+                    <p class="text-xs text-gray-500 mb-3">Ajusta la duración estándar de la clase en el laboratorio (bloques de 50 min o doble de 100 min).</p>
+                    <select class="bg-white border border-gray-200 text-sm font-semibold rounded-xl px-4 py-2.5 text-gray-700 focus:outline-none focus:border-orange-500 w-full sm:w-64">
+                      <option value="50">50 minutos (Sesión estándar)</option>
+                      <option value="100">100 minutos (Sesión doble)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </section>
         </div>
         
         <!-- NAVEGACIÓN MÓVIL -->
@@ -354,6 +396,11 @@
           <button class="nav-item" data-view="students" type="button">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             Usuarios
+          </button>
+
+          <button class="nav-item" data-view="settings" type="button">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            Configuración
           </button>
         </nav>
       </section>

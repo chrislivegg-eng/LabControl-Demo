@@ -24,6 +24,15 @@ const students = [
   ['Lucas Morales', 'PC-LAB-04 · Sesion activa']
 ];
 
+// Actualizar la fecha del dashboard sin el día de la semana
+const dateElement = document.querySelector('#current-date');
+if (dateElement) {
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('es-ES', options);
+  dateElement.textContent = `Hoy, ${formattedDate}`;
+}
+
 // Función para generar filas de una lista dada
 function renderActivityRows(list) {
   return list.map(item => {
@@ -115,7 +124,13 @@ new Chart(ctxGrafica, {
 });
 
 // 3. NAVEGACIÓN Y ACCIONES DEL SISTEMA
-const titles = { dashboard: 'Resumen del laboratorio', activity: 'Sesiones del laboratorio', students: 'Usuarios registrados', report: 'Reportes del Colegio Ciudadano' };
+const titles = { 
+  dashboard: 'Resumen del laboratorio', 
+  activity: 'Sesiones del laboratorio', 
+  report: 'Reportes del Colegio Ciudadano', 
+  students: 'Usuarios registrados',
+  settings: 'Configuración del sistema' 
+};
 function openView(name) {
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   document.querySelector(`#${name}-page`).classList.add('active');
@@ -211,8 +226,7 @@ async function askAi(question) {
     if (!response.ok) throw new Error(payload.error || 'No fue posible contactar al asistente.');
     loading.innerHTML = formatAiText(payload.reply);
   } catch (error) {
-    const fallback = answerAi(cleanQuestion);
-    loading.innerHTML = formatAiText(`**Asistente de demostración activo.** La IA en línea está ocupada o alcanzó su límite temporal, pero LabControl puede seguir ayudándote con los datos ficticios.\n\n${fallback}`);
+    loading.textContent = `${error.message} La demo local seguira disponible.`;
   }
 }
 
