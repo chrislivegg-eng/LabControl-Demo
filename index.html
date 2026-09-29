@@ -110,7 +110,7 @@
               <h2 id="page-title">Resumen del laboratorio</h2>
             </div>
             <div class="topbar-actions">
-              <button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span>Asistente IA</button>
+              <button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span>Asistente</button>
             </div>
           </header>
 
@@ -405,24 +405,26 @@
         </nav>
       </section>
 
-      <!-- ASISTENTE IA (Movido al nivel raíz de #app para evitar bloqueos por z-index o contenedores) -->
+      <!-- ASISTENTE DE AYUDA (Movido al nivel raíz de #app para evitar bloqueos por z-index o contenedores) -->
       <aside class="ai-panel" id="ai-panel" aria-hidden="true">
         <div class="ai-panel-header">
           <div>
-            <p class="eyebrow">LABCONTROL IA</p>
+            <p class="eyebrow">LABCONTROL · AYUDA</p>
             <h3>Asistente del docente</h3>
           </div>
           <button class="ai-close" id="ai-close" type="button" aria-label="Cerrar asistente">×</button>
         </div>
-        <p class="ai-disclaimer">Analiza únicamente los datos ficticios visibles en esta demo.</p>
+        <p class="ai-disclaimer">Resuelve dudas sobre cómo usar LabControl. Funciona sin internet y solo con los datos ficticios de esta demo.</p>
         <div class="ai-messages" id="ai-messages" aria-live="polite"></div>
         <div class="ai-suggestions">
+          <button type="button" data-ai-prompt="¿Qué es LabControl y para qué sirve?">¿Qué es LabControl?</button>
+          <button type="button" data-ai-prompt="¿Cómo imprimo un reporte?">¿Cómo imprimo un reporte?</button>
+          <button type="button" data-ai-prompt="¿Dónde veo las alertas?">¿Dónde veo las alertas?</button>
           <button type="button" data-ai-prompt="Resume el laboratorio">Resumen del día</button>
           <button type="button" data-ai-prompt="Detecta alertas">Detectar alertas</button>
-          <button type="button" data-ai-prompt="Identifica los módulos">Identificar módulos</button>
         </div>
         <form class="ai-form" id="ai-form">
-          <input id="ai-input" placeholder="Pregunta sobre la actividad..." autocomplete="off" />
+          <input id="ai-input" placeholder="Escribe tu pregunta..." autocomplete="off" />
           <button type="submit">Enviar</button>
         </form>
       </aside>
