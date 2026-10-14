@@ -9,7 +9,8 @@
     "windows-agent": "node agent/windows-agent.js",
     "agent-app": "electron app/main.js",
     "build:win": "electron-builder --win nsis",
-    "build:win-portable": "electron-builder --win portable"
+    "build:win-portable": "electron-builder --win portable",
+    "users": "node tools/users.js"
   },
   "engines": {
     "node": ">=18"
@@ -28,24 +29,26 @@
     },
     "files": [
       "app/**/*",
-      "agent/**/*",
-      "server/**/*",
+      "agent/config.js",
       "package.json"
     ],
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ],
-      "artifactName": "LabControl-Agent-${version}-${arch}.${ext}"
+      "artifactName": "LabControl-Agent-${version}-${arch}.${ext}",
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "LabControl Agent"
+      "shortcutName": "LabControl Agent",
+      "runAfterFinish": true,
+      "include": "build/installer.nsh"
     },
     "extraResources": [
       {

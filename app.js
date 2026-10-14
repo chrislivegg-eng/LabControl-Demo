@@ -187,15 +187,33 @@ const RULES_API_URL = AGENT_API_URL ? '/api/lab/rules' : '';
 const RULES_EXCEPTION_API_URL = AGENT_API_URL ? '/api/lab/rules/exception' : '';
 const TEACHER_LOGIN_API_URL = AGENT_API_URL ? '/api/teacher/login' : '';
 let activeTeacher = null;
+// El token vive solo en memoria: al recargar la pagina hay que volver a entrar.
+let teacherToken = '';
+
+function setTeacherToken(token) {
+  teacherToken = token || '';
+}
+
+// Llamadas al servidor local con la sesion del maestro.
+async function teacherFetch(url, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (teacherToken) headers.Authorization = `Bearer ${teacherToken}`;
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401 && activeTeacher) {
+    endTeacherSession('Tu sesión expiró. Vuelve a iniciar sesión.');
+  }
+  return response;
+}
+
 const agentStatus = document.querySelector('#agent-status');
 const notifiedAlertKeys = new Set();
 let browserNotificationsEnabled = window.localStorage.getItem('labcontrol-browser-notifications') === 'enabled' && 'Notification' in window && Notification.permission === 'granted';
 
 async function refreshAgentData() {
-  if (!AGENT_API_URL) return;
+  if (!AGENT_API_URL || !teacherToken) return;
 
   try {
-    const response = await fetch(AGENT_API_URL);
+    const response = await teacherFetch(AGENT_API_URL);
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || 'No fue posible leer los equipos.');
     if (Array.isArray(payload.activities)) {
@@ -216,7 +234,6 @@ async function refreshAgentData() {
 }
 
 if (AGENT_API_URL) {
-  refreshAgentData();
   window.setInterval(refreshAgentData, 5000);
 }
 
@@ -257,9 +274,9 @@ function renderRulesPanel(rules) {
 }
 
 async function loadRulesPanel() {
-  if (!RULES_API_URL || !ruleBlockEnabled) return;
+  if (!RULES_API_URL || !ruleBlockEnabled || !teacherToken) return;
   try {
-    const response = await fetch(RULES_API_URL);
+    const response = await teacherFetch(RULES_API_URL);
     const rules = await response.json();
     if (!response.ok) throw new Error(rules.error || 'No fue posible leer reglas.');
     renderRulesPanel(rules);
@@ -269,7 +286,7 @@ async function loadRulesPanel() {
 }
 
 async function saveRulesPatch(patch) {
-  const response = await fetch(RULES_API_URL, {
+  const response = await teacherFetch(RULES_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch)
@@ -309,7 +326,7 @@ webRuleForm?.addEventListener('submit', event => {
 document.querySelectorAll('[data-exception-action]').forEach(button => {
   button.addEventListener('click', async () => {
     try {
-      const response = await fetch(RULES_EXCEPTION_API_URL, {
+      const response = await teacherFetch(RULES_EXCEPTION_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -517,6 +534,10 @@ document.querySelector('#login-form').addEventListener('submit', async event => 
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'No fue posible iniciar sesión.');
       activeTeacher = payload;
+      setTeacherToken(payload.token);
+      if (passwordInput) passwordInput.value = '';
+      refreshAgentData();
+      loadRulesPanel();
     } else {
       activeTeacher = { displayName: usernameInput?.value || 'Docente Demo', role: 'teacher' };
     }
@@ -537,10 +558,20 @@ document.querySelector('#login-form').addEventListener('submit', async event => 
   }
 });
 
-document.querySelector('#logout').addEventListener('click', () => { 
+function endTeacherSession(message) {
   activeTeacher = null;
-  document.querySelector('#dashboard-view').classList.add('hidden'); 
-  document.querySelector('#login-view').classList.remove('hidden'); 
+  setTeacherToken('');
+  document.querySelector('#dashboard-view').classList.add('hidden');
+  document.querySelector('#login-view').classList.remove('hidden');
+  const loginMessage = document.querySelector('#login-message');
+  if (loginMessage) loginMessage.textContent = message || '';
+}
+
+document.querySelector('#logout').addEventListener('click', () => {
+  if (TEACHER_LOGIN_API_URL && teacherToken) {
+    fetch('/api/teacher/logout', { method: 'POST', headers: { Authorization: `Bearer ${teacherToken}` } }).catch(() => {});
+  }
+  endTeacherSession('');
 });
 
 document.querySelector('#print-report').addEventListener('click', () => window.print());

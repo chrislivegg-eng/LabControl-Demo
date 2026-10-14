@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import { access, readFile, writeFile } from 'node:fs/promises';
+import { access, appendFile, copyFile, readFile, writeFile } from 'node:fs/promises';
 import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
@@ -10,6 +10,8 @@ const bridgeDir = path.resolve(__dirname, '..');
 const labControlDir = path.resolve(bridgeDir, '..');
 const rulesPath = path.join(__dirname, 'rules.json');
 const usersPath = path.join(__dirname, 'users.json');
+const usersDemoPath = path.join(__dirname, 'users.demo.json');
+const auditPath = path.join(__dirname, 'audit.log');
 
 const PORT = Number(process.env.PORT || 3100);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -40,6 +42,68 @@ const allowedStaticFiles = new Set([
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
   response.end(JSON.stringify(payload));
+}
+
+// --- Seguridad: sesiones de maestro, limite de intentos y bitacora ---
+const TEACHER_SESSION_MS = Number(process.env.LABCONTROL_TEACHER_SESSION_HOURS || 10) * 60 * 60 * 1000;
+const LOGIN_MAX_FAILS = 5;
+const LOGIN_LOCK_MS = 60 * 1000;
+const teacherSessions = new Map();
+const loginFailures = new Map();
+
+function clientKey(request, username) {
+  return `${request.socket.remoteAddress || 'local'}|${username}`;
+}
+
+function isLoginLocked(key) {
+  const entry = loginFailures.get(key);
+  if (!entry) return false;
+  if (entry.lockedUntil && entry.lockedUntil > Date.now()) return true;
+  if (entry.lockedUntil) loginFailures.delete(key);
+  return false;
+}
+
+function registerLoginFailure(key) {
+  const entry = loginFailures.get(key) || { count: 0, lockedUntil: 0 };
+  entry.count += 1;
+  if (entry.count >= LOGIN_MAX_FAILS) {
+    entry.lockedUntil = Date.now() + LOGIN_LOCK_MS;
+    entry.count = 0;
+  }
+  loginFailures.set(key, entry);
+}
+
+function lockedResponse(response) {
+  sendJson(response, 429, { ok: false, error: 'Demasiados intentos. Espera un minuto y vuelve a intentar.' });
+}
+
+function getTeacherSession(request) {
+  const header = String(request.headers.authorization || '');
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const session = token ? teacherSessions.get(token) : null;
+  if (!session) return null;
+  if (session.expiresAt < Date.now()) {
+    teacherSessions.delete(token);
+    return null;
+  }
+  return session;
+}
+
+function requireTeacher(request, response) {
+  const session = getTeacherSession(request);
+  if (!session) {
+    sendJson(response, 401, { ok: false, error: 'Inicia sesión como maestro para continuar.' });
+    return null;
+  }
+  return session;
+}
+
+async function appendAudit(entry) {
+  try {
+    await appendFile(auditPath, `${JSON.stringify({ at: new Date().toISOString(), ...entry })}\n`, 'utf8');
+  } catch (error) {
+    console.error(`No pude escribir la bitacora: ${error.message}`);
+  }
 }
 
 function readRequestJson(request) {
@@ -85,6 +149,14 @@ async function saveRules(rules) {
 }
 
 async function loadUsers() {
+  // Primera ejecucion: se parte de las cuentas demo. Las cuentas reales se
+  // guardan en users.json, que no se sube a Git.
+  try {
+    await access(usersPath);
+  } catch {
+    await copyFile(usersDemoPath, usersPath);
+    console.log('users.json no existia: se copiaron las cuentas demo. Cambialas con npm run users.');
+  }
   const raw = await readFile(usersPath, 'utf8');
   return JSON.parse(raw);
 }
@@ -105,8 +177,15 @@ async function handleTeacherLogin(request, response) {
     const users = await loadUsers();
     const user = users.find(entry => entry.username.toLowerCase() === username);
     const allowedRoles = new Set(['teacher', 'admin']);
+    const key = clientKey(request, `teacher:${username}`);
+
+    if (isLoginLocked(key)) {
+      lockedResponse(response);
+      return;
+    }
 
     if (!username || !password || !user || !allowedRoles.has(user.role) || !verifyPassword(password, user)) {
+      registerLoginFailure(key);
       sendJson(response, 401, {
         ok: false,
         error: 'Usuario o contraseña de maestro incorrectos.'
@@ -114,8 +193,19 @@ async function handleTeacherLogin(request, response) {
       return;
     }
 
+    loginFailures.delete(key);
+    const token = randomUUID();
+    teacherSessions.set(token, {
+      username: user.username,
+      displayName: user.displayName,
+      role: user.role,
+      expiresAt: Date.now() + TEACHER_SESSION_MS
+    });
+    await appendAudit({ event: 'teacher-login', username: user.username });
+
     sendJson(response, 200, {
       ok: true,
+      token,
       username: user.username,
       displayName: user.displayName,
       role: user.role
@@ -123,6 +213,12 @@ async function handleTeacherLogin(request, response) {
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
   }
+}
+
+function handleTeacherLogout(request, response) {
+  const header = String(request.headers.authorization || '');
+  if (header.startsWith('Bearer ')) teacherSessions.delete(header.slice(7).trim());
+  sendJson(response, 200, { ok: true });
 }
 
 async function handleAgentLogin(request, response) {
@@ -134,8 +230,15 @@ async function handleAgentLogin(request, response) {
     const pc = String(body.pc || agentId || 'PC-SIN-NOMBRE').trim();
     const users = await loadUsers();
     const user = users.find(entry => entry.username.toLowerCase() === username);
+    const key = clientKey(request, `agent:${username}`);
+
+    if (isLoginLocked(key)) {
+      lockedResponse(response);
+      return;
+    }
 
     if (!agentId || !username || !password || !user || !verifyPassword(password, user)) {
+      registerLoginFailure(key);
       sendJson(response, 401, {
         ok: false,
         error: 'Usuario o contraseña incorrectos.'
@@ -143,6 +246,11 @@ async function handleAgentLogin(request, response) {
       return;
     }
 
+    loginFailures.delete(key);
+    // Una PC solo tiene una sesion activa: al volver a entrar se reemplaza la anterior.
+    for (const [token, existing] of agentSessions) {
+      if (existing.agentId === agentId) agentSessions.delete(token);
+    }
     const sessionToken = randomUUID();
     const session = {
       sessionToken,
@@ -465,6 +573,8 @@ async function handleAgentConfig(response) {
 }
 
 async function handleRulesUpdate(request, response) {
+  const teacher = requireTeacher(request, response);
+  if (!teacher) return;
   try {
     const body = await readRequestJson(request);
     const currentRules = await loadRules();
@@ -489,6 +599,12 @@ async function handleRulesUpdate(request, response) {
 
     const normalizedRules = normalizeRules(nextRules);
     await saveRules(normalizedRules);
+    await appendAudit({
+      event: 'rules-update',
+      username: teacher.username,
+      blockEnabled: normalizedRules.blockEnabled,
+      changes: Object.keys(body)
+    });
     sendJson(response, 200, { ok: true, rules: normalizedRules });
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
@@ -496,6 +612,8 @@ async function handleRulesUpdate(request, response) {
 }
 
 async function handleExceptionUpdate(request, response) {
+  const teacher = requireTeacher(request, response);
+  if (!teacher) return;
   try {
     const body = await readRequestJson(request);
     const exceptionName = String(body.name || '').trim().toLowerCase();
@@ -516,6 +634,7 @@ async function handleExceptionUpdate(request, response) {
 
     rules.exceptions = [...exceptions];
     await saveRules(rules);
+    await appendAudit({ event: action === 'remove' ? 'exception-remove' : 'exception-add', username: teacher.username, value: exceptionName });
     sendJson(response, 200, { ok: true, rules });
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
@@ -600,7 +719,13 @@ const server = http.createServer((request, response) => {
     return;
   }
 
+  if (request.method === 'POST' && request.url === '/api/teacher/logout') {
+    handleTeacherLogout(request, response);
+    return;
+  }
+
   if (request.method === 'GET' && request.url === '/api/lab/rules') {
+    if (!requireTeacher(request, response)) return;
     handleAgentConfig(response);
     return;
   }
@@ -626,6 +751,7 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === 'GET' && request.url === '/api/lab/status') {
+    if (!requireTeacher(request, response)) return;
     sendJson(response, 200, buildStatusPayload());
     return;
   }

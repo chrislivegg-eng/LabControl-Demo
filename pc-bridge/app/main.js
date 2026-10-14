@@ -59,11 +59,12 @@ function createWindow() {
 function createTray() {
   const trayIcon = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFElEQVR4AWP4z8Dwn4ECwESJ5lEDACu9AhG4oc3FAAAAAElFTkSuQmCC');
   tray = new Tray(trayIcon);
-  const contextMenu = Menu.buildFromTemplate([
-    { label: 'Mostrar LabControl', click: () => showLoginWindow() },
-    { type: 'separator' },
-    { label: 'Salir de prueba', click: () => { app.isQuiting = true; app.quit(); } }
-  ]);
+  const menuItems = [{ label: 'Mostrar LabControl', click: () => showLoginWindow() }];
+  // En la app instalada el alumno no puede cerrar el agente desde la bandeja.
+  if (!app.isPackaged) {
+    menuItems.push({ type: 'separator' }, { label: 'Salir (solo desarrollo)', click: () => { app.isQuiting = true; app.quit(); } });
+  }
+  const contextMenu = Menu.buildFromTemplate(menuItems);
   tray.setToolTip('LabControl Agent');
   tray.setContextMenu(contextMenu);
   tray.on('click', () => showLoginWindow());
@@ -77,10 +78,24 @@ function showLoginWindow() {
 }
 
 async function fetchJson(pathname, options = {}) {
-  const response = await fetch(`${SERVER_URL}${pathname}`, options);
+  const response = await fetch(`${SERVER_URL}${pathname}`, { ...options, signal: AbortSignal.timeout(8000) });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || `Error ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(payload.error || `Error ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
   return payload;
+}
+
+// Si el servidor se reinicio, la sesion ya no existe: se pide login otra vez.
+function requireLoginAgain(message) {
+  activeSession = null;
+  if (reportTimer) clearTimeout(reportTimer);
+  reportTimer = null;
+  showLoginWindow();
+  mainWindow?.webContents.send('login-required', message);
+  startPendingLoop();
 }
 
 async function reportLoginPending() {
@@ -196,14 +211,23 @@ Start-Sleep -Milliseconds 180
   ], { windowsHide: true });
 }
 
+// Procesos que nunca se cierran aunque coincidan con una regla.
+const PROTECTED_PROCESSES = new Set([
+  'explorer', 'system', 'svchost', 'winlogon', 'csrss', 'lsass', 'services', 'dwm',
+  'taskmgr', 'labcontrolagent', 'electron', 'powershell', 'conhost'
+]);
+
 async function blockProcess(activeWindow) {
   if (process.platform !== 'win32' || !activeWindow.pid) return;
+  if (activeWindow.pid === process.pid) return;
+  if (PROTECTED_PROCESSES.has(normalizeAppName(activeWindow.processName))) return;
   await execFileAsync('taskkill.exe', ['/PID', String(activeWindow.pid), '/F'], { windowsHide: true });
 }
 
 async function applyBlock(activeWindow, result) {
   if (!result.blockEnabled || !result.blocked) return;
-  if (result.blockType === 'page' && isBrowserProcess(activeWindow.processName)) {
+  // En un navegador solo se cierra la pestana, nunca el navegador completo.
+  if (isBrowserProcess(activeWindow.processName)) {
     await closeBrowserTab(activeWindow);
     return;
   }
@@ -241,10 +265,13 @@ async function reportLoop() {
 
     mainWindow?.webContents.send('agent-status', `Reportando: ${activeWindow.processName || activeWindow.app} · bloqueado=${result.blocked}`);
   } catch (error) {
+    if (error.status === 401) {
+      requireLoginAgain('La sesión terminó. Vuelve a iniciar sesión.');
+      return;
+    }
     mainWindow?.webContents.send('agent-status', error.message);
-  } finally {
-    reportTimer = setTimeout(reportLoop, reportIntervalMs);
   }
+  if (activeSession) reportTimer = setTimeout(reportLoop, reportIntervalMs);
 }
 
 function startReporting() {
@@ -288,7 +315,16 @@ ipcMain.handle('agent:login', async (_event, credentials) => {
   return payload;
 });
 
+// Solo una copia del agente por PC.
+const hasInstanceLock = app.requestSingleInstanceLock();
+if (!hasInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => showLoginWindow());
+}
+
 app.whenReady().then(() => {
+  if (!hasInstanceLock) return;
   Menu.setApplicationMenu(null);
   createWindow();
   createTray();

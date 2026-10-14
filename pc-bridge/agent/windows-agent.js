@@ -302,14 +302,24 @@ Start-Sleep -Milliseconds 180
   ], { windowsHide: true });
 }
 
+// Procesos que nunca se cierran aunque coincidan con una regla.
+const PROTECTED_PROCESSES = new Set([
+  'explorer', 'system', 'svchost', 'winlogon', 'csrss', 'lsass', 'services', 'dwm',
+  'taskmgr', 'labcontrolagent', 'electron', 'node', 'powershell', 'conhost', 'cmd', 'windowsterminal'
+]);
+
 async function blockProcess(activeWindow) {
   if (process.platform !== 'win32' || !activeWindow.pid) return;
+  if (activeWindow.pid === process.pid) return;
+  if (PROTECTED_PROCESSES.has(normalizeAppName(activeWindow.processName))) return;
   await execFileAsync('taskkill.exe', ['/PID', String(activeWindow.pid), '/F'], { windowsHide: true });
 }
 
+// El agente de consola es para pruebas: solo cierra algo si se inicio con
+// --enable-blocking Y el panel tiene "Bloqueo activo".
 async function applyBlock(activeWindow, result) {
-  if (!result.blockEnabled || !result.blocked) return;
-  if (result.blockType === 'page' && isBrowserProcess(activeWindow.processName)) {
+  if (!ENABLE_BLOCKING || !result.blockEnabled || !result.blocked) return;
+  if (isBrowserProcess(activeWindow.processName)) {
     await closeBrowserTab(activeWindow);
     return;
   }
@@ -342,9 +352,13 @@ async function reportLoop() {
     });
     const result = await response.json();
 
-    if (result.blockEnabled && result.blocked) {
+    if (response.status === 401) {
+      console.log('La sesion termino (el servidor se reinicio). Vuelve a iniciar sesion.');
+      activeSession = null;
+      await loginAgent();
+    } else if (ENABLE_BLOCKING && result.blockEnabled && result.blocked) {
       await applyBlock(activeWindow, result);
-      console.log(result.blockType === 'page' ? `Pestaña bloqueada: ${activeWindow.app}` : `Aplicación bloqueada: ${activeWindow.processName}`);
+      console.log(isBrowserProcess(activeWindow.processName) ? `Pestaña bloqueada: ${activeWindow.app}` : `Aplicación bloqueada: ${activeWindow.processName}`);
     } else {
       console.log(`Reportado: ${activeWindow.processName || activeWindow.app} | bloqueado=${result.blocked}`);
     }
