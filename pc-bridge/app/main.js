@@ -4,10 +4,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { loadAgentConfig } from '../agent/config.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SERVER_URL = process.env.LABCONTROL_SERVER || 'http://192.168.0.123:3100';
+const AGENT_CONFIG = loadAgentConfig();
+const SERVER_URL = AGENT_CONFIG.serverUrl;
 const AGENT_ID = process.env.LABCONTROL_AGENT_ID || os.hostname();
 const LOGIN_RETRY_MS = Number(process.env.LABCONTROL_LOGIN_RETRY_MS || 5000);
 const ENABLE_BLOCKING = process.argv.includes('--enable-blocking');

@@ -46,6 +46,12 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "LabControl Agent"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "config/labcontrol-config.json",
+        "to": "labcontrol-config.json"
+      }
+    ]
   }
 }

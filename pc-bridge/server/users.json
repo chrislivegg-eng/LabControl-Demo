@@ -12,5 +12,40 @@
     "passwordSalt": "b2a3451c23a474e05b2f87af9fb1829a",
     "passwordHash": "8d6e6f2785a9ec164fef761065dd60e254ff60395098f6deae1aab47c0411843",
     "role": "teacher"
+  },
+  {
+    "username": "chris",
+    "displayName": "Chris",
+    "passwordSalt": "20a58f041c4c6021a20e8343292a394d",
+    "passwordHash": "dd925f0b7a86d68511efb99f9cb3ae562c6d04f97d1d593cf8785119044c6b30",
+    "role": "student"
+  },
+  {
+    "username": "bebe1",
+    "displayName": "Bebe 1",
+    "passwordSalt": "fb96eeb5fbb498d95fac36840203b161",
+    "passwordHash": "951f62067ac8c7c69be40b3805c99c955521d361ce95e3ca60dc19670a0390d7",
+    "role": "student"
+  },
+  {
+    "username": "docente",
+    "displayName": "Docente Demo",
+    "passwordSalt": "be4fbf921e3ea07c0d4c28f05d45dfa9",
+    "passwordHash": "c3f3f219e97ba68fede142540af13e896780960ff026dd9dffd8456c930862b1",
+    "role": "teacher"
+  },
+  {
+    "username": "profeana",
+    "displayName": "Profa. Ana Martinez",
+    "passwordSalt": "c5adb07d93d0e59665120a083a8bdc7a",
+    "passwordHash": "53da404a75df45485f7a128859085e178b6287b32b60af52dcc1a27e6aba0f58",
+    "role": "teacher"
+  },
+  {
+    "username": "coordlab",
+    "displayName": "Coordinador de Laboratorio",
+    "passwordSalt": "5c466ef5285d82580c9dc1995a1b5b91",
+    "passwordHash": "cb85d7fee282fba2e130f9e7a5f386055d1e091b628d2b0fe3532e0602c62346",
+    "role": "admin"
   }
 ]
