@@ -46,6 +46,14 @@ Panel:
 - Los maestros abren el panel desde su laptop con el navegador. No se instala nada en las laptops.
 - Las laptops deben estar en la **misma red** que las PCs del laboratorio.
 
+### Sin internet
+
+LabControl **no necesita internet**: las PCs, el servidor y las laptops se comunican por la red local. Si se cae el internet pero el router o switch sigue encendido, el monitoreo, los reportes y los bloqueos siguen funcionando.
+
+El panel usa Tailwind y Chart.js. `Iniciar servidor` descarga una copia local la primera vez que hay internet (`npm run vendor`, en `assets/vendor/`); despues el panel ya no depende de internet. Si la copia no existe, se usan los CDN.
+
+Lo unico que si necesita internet es el asistente de IA remoto. Sin internet, usa sus respuestas locales.
+
 ### Si el servidor esta apagado
 
 La app del alumno no estorba: oculta la ventana de login, se queda en la bandeja ("sin servidor") y la PC se usa normal. En cuanto el servidor responde, vuelve a pedir login.

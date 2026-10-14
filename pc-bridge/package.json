@@ -10,7 +10,8 @@
     "agent-app": "electron app/main.js",
     "build:win": "electron-builder --win nsis",
     "build:win-portable": "electron-builder --win portable",
-    "users": "node tools/users.js"
+    "users": "node tools/users.js",
+    "vendor": "node tools/fetch-vendor.js"
   },
   "engines": {
     "node": ">=18"

@@ -10,5 +10,9 @@ IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null)
 echo "Panel del maestro: http://127.0.0.1"
 [ -n "$IP" ] && echo "Desde otras PCs: http://$IP (si el puerto 80 no se pudo usar, agrega :3100)"
 echo "Deja esta ventana abierta mientras se use el laboratorio."
+if [ ! -f ../assets/vendor/tailwindcss.js ]; then
+  echo "Descargando copia local del panel para usarlo sin internet..."
+  node tools/fetch-vendor.js
+fi
 PORT=80 node server/index.js
 read -r -p "El servidor se detuvo. Presiona Enter para cerrar"

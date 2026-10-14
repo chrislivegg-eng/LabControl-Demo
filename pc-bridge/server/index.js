@@ -38,7 +38,9 @@ const allowedStaticFiles = new Set([
   '/assets/favicon.svg',
   '/assets/favicon.png',
   '/assets/cyber-lab-background.png',
-  '/assets/labcontrol-wordmark.png'
+  '/assets/labcontrol-wordmark.png',
+  '/assets/vendor/tailwindcss.js',
+  '/assets/vendor/chart.umd.min.js'
 ]);
 
 function sendJson(response, statusCode, payload) {

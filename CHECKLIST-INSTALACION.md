@@ -47,6 +47,7 @@ Panel en **Solo alertas** durante toda esta seccion.
 - [ ] Desde la PC de un alumno abrir `http://labcontrol`: sin cuenta de maestro no se ve nada.
 - [ ] Apagar el servidor: en la PC del alumno la ventana de login se oculta y la PC se usa normal.
 - [ ] Volver a prender el servidor: la app vuelve a pedir login.
+- [ ] Sin internet: desconectar el cable de internet del router (dejando el router prendido). El panel debe verse completo, con graficas, y las PCs deben seguir reportando.
 
 ## D. Prueba de bloqueo (una sola PC)
 

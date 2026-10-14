@@ -189,7 +189,7 @@ Antes de distribuir el instalador:
 5. Probar desde dos o tres PCs.
 6. Despues instalar en todas las PCs autorizadas.
 
-Si se va el acceso a internet, las PCs pueden seguir comunicandose por Ethernet o Wi-Fi si permanecen en la misma red local y el router o switch sigue encendido. El asistente remoto y los CDN pueden dejar de funcionar sin internet, pero el servidor local y los reportes LAN pueden continuar.
+Si se va el acceso a internet, las PCs siguen comunicandose por Ethernet o Wi-Fi mientras permanezcan en la misma red local y el router o switch siga encendido. El panel usa copias locales de Tailwind y Chart.js (`npm run vendor`, que `Iniciar servidor` ejecuta solo la primera vez), asi que funciona sin internet. Solo el asistente de IA remoto necesita internet; sin el, usa respuestas locales.
 
 ## 7. Reglas de bloqueo
 
