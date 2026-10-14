@@ -8,9 +8,11 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-echo Panel del maestro en esta PC: http://127.0.0.1:3100
-echo Las PCs de alumnos se conectan a la IP de esta PC, puerto 3100.
+echo Panel del maestro en esta PC: http://127.0.0.1
+echo Desde las laptops: http://%COMPUTERNAME% o la IP de esta PC.
+echo Si el puerto 80 esta ocupado se usara el 3100 ^(se indica abajo^).
 echo Deja esta ventana abierta mientras se use el laboratorio.
+set "PORT=80"
 node server\index.js
 echo El servidor se detuvo. Si hay un error arriba, comparte una captura.
 pause

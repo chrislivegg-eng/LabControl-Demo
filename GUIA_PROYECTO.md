@@ -163,7 +163,7 @@ El agente de consola solo cierra algo con `--enable-blocking` y con `Bloqueo act
 
 ## 6. Configuracion de red
 
-El servidor central puede estar en la Mac del laboratorio. Las PCs Windows deben estar en la misma red local y usar la IP de la Mac.
+Esquema acordado: una PC del laboratorio llamada `LABCONTROL` es el servidor (puerto 80) y los maestros abren el panel desde su laptop en `http://labcontrol`. Las PCs de alumnos y las laptops deben estar en la misma red local. Si el servidor esta apagado, la app del alumno se oculta y la PC se usa normal.
 
 Archivo:
 
@@ -173,7 +173,7 @@ Configuracion actual de referencia:
 
 ```json
 {
-  "serverUrl": "http://192.168.0.168:3100",
+  "serverUrl": "http://labcontrol",
   "mode": "lab-managed"
 }
 ```
@@ -185,7 +185,7 @@ Antes de distribuir el instalador:
 1. Confirmar la IP local fija de la Mac.
 2. Actualizar `serverUrl`.
 3. Levantar el servidor con esa IP disponible en la red.
-4. Permitir TCP `3100` y UDP `3101` en el firewall, solo para la red local.
+4. Permitir TCP `80` y `3100` y UDP `3101` en el firewall, solo para la red local.
 5. Probar desde dos o tres PCs.
 6. Despues instalar en todas las PCs autorizadas.
 

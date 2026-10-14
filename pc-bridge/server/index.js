@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs';
 import { access, appendFile, copyFile, readFile, writeFile } from 'node:fs/promises';
 import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultPaths, loadOrCreateKeys, startDiscoveryResponder } from './discovery.js';
@@ -778,16 +779,41 @@ const server = http.createServer((request, response) => {
   response.end('Method not allowed');
 });
 
-if (process.env.LABCONTROL_DISCOVERY !== 'off') {
+const FALLBACK_PORT = 3100;
+
+function startDiscovery(httpPort) {
+  if (process.env.LABCONTROL_DISCOVERY === 'off') return;
   try {
     const { privateKey } = loadOrCreateKeys(defaultPaths(__dirname));
-    startDiscoveryResponder({ privateKey, httpPort: PORT });
+    startDiscoveryResponder({ privateKey, httpPort });
   } catch (error) {
     console.error(`Descubrimiento automatico desactivado: ${error.message}`);
   }
 }
 
-server.listen(PORT, HOST, () => {
-  console.log(`LabControl PC Bridge listo en http://${HOST}:${PORT}`);
-  console.log(`En esta Mac: http://127.0.0.1:${PORT}`);
+function printReady(port) {
+  const suffix = port === 80 ? '' : `:${port}`;
+  console.log(`LabControl listo. Panel en esta PC: http://127.0.0.1${suffix}`);
+  console.log(`Desde otras PCs: http://${os.hostname().toLowerCase()}${suffix}  o  http://IP-DE-ESTA-PC${suffix}`);
+}
+
+// Si el puerto pedido (por ejemplo 80) esta ocupado o no esta permitido,
+// se usa el 3100 para que el laboratorio no se quede sin servidor.
+server.once('error', error => {
+  if (PORT !== FALLBACK_PORT && (error.code === 'EADDRINUSE' || error.code === 'EACCES')) {
+    console.error(`No se pudo usar el puerto ${PORT} (${error.code}). Se usara el ${FALLBACK_PORT}.`);
+    server.listen(FALLBACK_PORT, HOST);
+    return;
+  }
+  console.error(`No se pudo iniciar el servidor: ${error.message}`);
+  process.exit(1);
 });
+
+// Un solo aviso de "listo", con el puerto que realmente quedo en uso.
+server.once('listening', () => {
+  const { port } = server.address();
+  printReady(port);
+  startDiscovery(port);
+});
+
+server.listen(PORT, HOST);

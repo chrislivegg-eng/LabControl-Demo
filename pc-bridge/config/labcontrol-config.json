@@ -1,4 +1,4 @@
 {
-  "serverUrl": "http://192.168.0.168:3100",
+  "serverUrl": "http://labcontrol",
   "mode": "lab-managed"
 }

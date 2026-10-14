@@ -7,8 +7,8 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null)
-echo "Panel del maestro: http://127.0.0.1:3100"
-[ -n "$IP" ] && echo "Las PCs de alumnos deben usar: http://$IP:3100"
+echo "Panel del maestro: http://127.0.0.1"
+[ -n "$IP" ] && echo "Desde otras PCs: http://$IP (si el puerto 80 no se pudo usar, agrega :3100)"
 echo "Deja esta ventana abierta mientras se use el laboratorio."
-node server/index.js
+PORT=80 node server/index.js
 read -r -p "El servidor se detuvo. Presiona Enter para cerrar"

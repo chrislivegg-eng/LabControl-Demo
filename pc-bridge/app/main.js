@@ -12,6 +12,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AGENT_CONFIG = loadAgentConfig();
 let serverUrl = AGENT_CONFIG.serverUrl;
 let networkFailures = 0;
+// Si no hay servidor (apagado o fuera de la red), la app no estorba al alumno.
+let serverOnline = false;
+let offlineChecks = 0;
+const OFFLINE_AFTER_CHECKS = 2;
 let locating = null;
 const AGENT_ID = process.env.LABCONTROL_AGENT_ID || os.hostname();
 const LOGIN_RETRY_MS = Number(process.env.LABCONTROL_LOGIN_RETRY_MS || 5000);
@@ -34,6 +38,7 @@ function createWindow() {
     maximizable: false,
     autoHideMenuBar: true,
     title: 'LabControl Agent',
+    show: false,
     backgroundColor: '#fff7f2',
     alwaysOnTop: !activeSession,
     webPreferences: {
@@ -48,7 +53,7 @@ function createWindow() {
   mainWindow.on('close', event => {
     if (!app.isQuiting) {
       event.preventDefault();
-      if (activeSession) {
+      if (activeSession || !serverOnline) {
         mainWindow.hide();
         return;
       }
@@ -121,9 +126,29 @@ function requireLoginAgain(message) {
   activeSession = null;
   if (reportTimer) clearTimeout(reportTimer);
   reportTimer = null;
+  serverOnline = true;
   showLoginWindow();
   mainWindow?.webContents.send('login-required', message);
   startPendingLoop();
+}
+
+function setServerOnline(online) {
+  if (online) {
+    offlineChecks = 0;
+    if (!serverOnline) {
+      serverOnline = true;
+      tray?.setToolTip('LabControl Agent - conectado');
+    }
+    return;
+  }
+  offlineChecks += 1;
+  if (serverOnline && offlineChecks < OFFLINE_AFTER_CHECKS) return;
+  serverOnline = false;
+  tray?.setToolTip('LabControl Agent - sin servidor (la PC funciona normal)');
+  if (!activeSession && mainWindow?.isVisible()) {
+    mainWindow.setAlwaysOnTop(false);
+    mainWindow.hide();
+  }
 }
 
 async function reportLoginPending() {
@@ -137,20 +162,25 @@ async function reportLoginPending() {
         pid: process.pid
       })
     });
+    setServerOnline(true);
   } catch (error) {
+    setServerOnline(false);
     mainWindow?.webContents.send('agent-status', `Sin conexión con servidor: ${error.message}`);
   }
 }
 
+// Mientras no haya sesion: si el servidor responde se pide login; si no, la
+// ventana se queda oculta y se vuelve a intentar.
+async function pendingTick() {
+  if (activeSession) return;
+  await reportLoginPending();
+  if (serverOnline && !activeSession) showLoginWindow();
+}
+
 function startPendingLoop() {
   if (pendingTimer) return;
-  reportLoginPending();
-  pendingTimer = setInterval(() => {
-    if (!activeSession) {
-      reportLoginPending();
-      showLoginWindow();
-    }
-  }, LOGIN_RETRY_MS);
+  pendingTick();
+  pendingTimer = setInterval(pendingTick, LOGIN_RETRY_MS);
 }
 
 function stopPendingLoop() {

@@ -33,11 +33,26 @@ Windows: doble clic en `Iniciar servidor.cmd`.
 Mac: doble clic en `Iniciar servidor.command` (la primera vez: clic derecho > Abrir).
 Terminal: `npm start` desde `pc-bridge`.
 
-Panel: `http://127.0.0.1:3100` en la misma PC, o `http://IP-DEL-SERVIDOR:3100` desde otra.
+El servidor usa el puerto 80, asi que no hace falta escribir puerto. Si el 80 esta ocupado, usa el 3100 y lo indica en la ventana.
+
+Panel:
+- En la misma PC: `http://127.0.0.1`.
+- Desde otra PC o laptop: **`http://labcontrol`**, si la PC servidor se llama `LABCONTROL`. Si no, `http://IP-DEL-SERVIDOR`.
+- En Mac, si `http://labcontrol` no abre, prueba `http://labcontrol.local`.
+
+### Esquema recomendado
+
+- Una PC del laboratorio (de preferencia la del escritorio del maestro) es el servidor y se llama `LABCONTROL`.
+- Los maestros abren el panel desde su laptop con el navegador. No se instala nada en las laptops.
+- Las laptops deben estar en la **misma red** que las PCs del laboratorio.
+
+### Si el servidor esta apagado
+
+La app del alumno no estorba: oculta la ventana de login, se queda en la bandeja ("sin servidor") y la PC se usa normal. En cuanto el servidor responde, vuelve a pedir login.
 
 La PC del servidor necesita:
 - De preferencia, IP fija en la red del laboratorio (reservala en el router).
-- Abiertos en su firewall, solo para la red local: el puerto TCP 3100 (panel y reportes) y el UDP 3101 (busqueda automatica).
+- Abiertos en su firewall, solo para la red local: TCP 80 y 3100 (panel y reportes) y UDP 3101 (busqueda automatica).
 - No exponer esos puertos a internet.
 
 ### Busqueda automatica del servidor
@@ -89,7 +104,7 @@ Las contrasenas se guardan con scrypt y salt, nunca en texto plano.
 
 ## 3. Instalador para las PCs de alumnos
 
-1. Edita `config/labcontrol-config.json` con la IP fija del servidor. Comprueba que tenga `discoveryPublicKey` (ver Busqueda automatica).
+1. Revisa `config/labcontrol-config.json`. Por defecto apunta a `http://labcontrol`. Si la PC servidor tiene otro nombre, pon su nombre o su IP fija. Comprueba que tenga `discoveryPublicKey` (ver Busqueda automatica).
 2. En una PC Windows, doble clic en `Crear instalador Windows.cmd`.
 3. El resultado queda en `dist/LabControl-Agent-<version>-x64.exe`.
 

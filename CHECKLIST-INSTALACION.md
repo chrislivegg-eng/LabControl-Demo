@@ -4,10 +4,11 @@ Marca cada punto. Si algo falla, anota que paso y toma captura del panel y de cu
 
 ## A. Antes de ir al laboratorio
 
-- [ ] Elegir la PC o Mac que sera el servidor. Debe quedarse encendida durante las clases.
-- [ ] Reservar una IP fija para esa PC en el router (o pedirsela a sistemas).
-- [ ] Anotar la IP: `________________`
-- [ ] Poner esa IP en `pc-bridge/config/labcontrol-config.json`.
+- [ ] Elegir la PC del laboratorio que sera el servidor (de preferencia la del escritorio del maestro).
+- [ ] Renombrarla a `LABCONTROL`. Si pertenece al dominio de la escuela, pedirselo a sistemas.
+- [ ] De preferencia, reservarle una IP fija en el router. Anotar la IP: `________________`
+- [ ] `pc-bridge/config/labcontrol-config.json` apunta a `http://labcontrol` (o a la IP, si no se pudo renombrar).
+- [ ] Confirmar que las laptops de los maestros se conectan a la **misma red** que las PCs del laboratorio.
 - [ ] Arrancar el servidor una vez en la PC definitiva del servidor, para que escriba `discoveryPublicKey` en ese archivo.
 - [ ] Respaldar `pc-bridge/server/discovery-private.pem` fuera del servidor (USB o Drive privado).
 - [ ] Compilar el instalador con `Crear instalador Windows.cmd`, usando el `labcontrol-config.json` que ya tiene la llave.
@@ -17,8 +18,9 @@ Marca cada punto. Si algo falla, anota que paso y toma captura del panel y de cu
 
 - [ ] Instalar Node.js 22 o superior en el servidor.
 - [ ] Iniciar con `Iniciar servidor.cmd` (Windows) o `Iniciar servidor.command` (Mac).
-- [ ] Permitir TCP 3100 y UDP 3101 en el firewall, solo para la red local.
-- [ ] Desde otra PC del laboratorio, abrir `http://IP:3100`. Debe aparecer el login del panel.
+- [ ] Permitir TCP 80 y 3100 y UDP 3101 en el firewall, solo para la red local.
+- [ ] Desde la laptop de un maestro, abrir `http://labcontrol`. Debe aparecer el login del panel. En Mac, probar tambien `http://labcontrol.local`.
+- [ ] Entrar como maestro desde la laptop y ver el dashboard.
 - [ ] Crear las cuentas reales de maestros y alumnos con `npm run users` (ver `pc-bridge/README.md`).
 - [ ] Ejecutar `npm run users -- remove-demo`.
 - [ ] Repartir las contrasenas y **borrar** el CSV de contrasenas generado.
@@ -42,7 +44,9 @@ Panel en **Solo alertas** durante toda esta seccion.
 - [ ] Reiniciar el servidor: en unos segundos la app vuelve a pedir login.
 - [ ] Busqueda automatica: en una PC de prueba, cambiar `serverUrl` a una IP que no exista en `C:\Program Files\LabControl Agent\resources\labcontrol-config.json` (como administrador) y reiniciar. La app debe encontrar el servidor sola.
 - [ ] Regresar `serverUrl` a la IP correcta.
-- [ ] Desde la PC de un alumno abrir `http://IP:3100`: sin cuenta de maestro no se ve nada.
+- [ ] Desde la PC de un alumno abrir `http://labcontrol`: sin cuenta de maestro no se ve nada.
+- [ ] Apagar el servidor: en la PC del alumno la ventana de login se oculta y la PC se usa normal.
+- [ ] Volver a prender el servidor: la app vuelve a pedir login.
 
 ## D. Prueba de bloqueo (una sola PC)
 
