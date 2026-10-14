@@ -17,8 +17,9 @@ Marca cada punto. Si algo falla, anota que paso y toma captura del panel y de cu
 ## B. Servidor
 
 - [ ] Instalar Node.js 22 o superior en el servidor.
-- [ ] Iniciar con `Iniciar servidor.cmd` (Windows) o `Iniciar servidor.command` (Mac).
-- [ ] Permitir TCP 80 y 3100 y UDP 3101 en el firewall, solo para la red local.
+- [ ] Copiar la carpeta del proyecto a `C:\LabControl`.
+- [ ] Clic derecho en `pc-bridge\Instalar servidor en esta PC.cmd` > Ejecutar como administrador. Revisar que diga [OK] en tarea programada, firewall y servidor.
+- [ ] Reiniciar la PC servidor **sin iniciar sesion** y, desde una laptop, comprobar que `http://labcontrol` abre el panel.
 - [ ] Desde la laptop de un maestro, abrir `http://labcontrol`. Debe aparecer el login del panel. En Mac, probar tambien `http://labcontrol.local`.
 - [ ] Entrar como maestro desde la laptop y ver el dashboard.
 - [ ] Crear las cuentas reales de maestros y alumnos con `npm run users` (ver `pc-bridge/README.md`).

@@ -182,6 +182,8 @@ Si no hay servidor, la app del alumno no estorba ni bloquea. Guarda la actividad
 
 Si la IP configurada no responde, la app busca el servidor en la red local por UDP 3101 y solo acepta respuestas firmadas con la llave del servidor (Ed25519). La llave privada esta en `server/discovery-private.pem`, que no se sube a Git y se debe respaldar. La llave publica se escribe sola en `discoveryPublicKey`. Detalles en `pc-bridge/README.md`.
 
+En la PC del laboratorio, el servidor se instala una vez con `pc-bridge/Instalar servidor en esta PC.cmd` (como administrador): arranca solo al prender la PC, se reinicia si falla y el firewall queda abierto solo para la red local.
+
 Antes de distribuir el instalador:
 
 1. Confirmar la IP local fija de la Mac.

@@ -29,7 +29,20 @@ pc-bridge/
 
 ## 1. Servidor
 
-Windows: doble clic en `Iniciar servidor.cmd`.
+**PC del laboratorio (recomendado):**
+1. Copia la carpeta del proyecto a un lugar fijo, por ejemplo `C:\LabControl`.
+2. Clic derecho en `Instalar servidor en esta PC.cmd` > **Ejecutar como administrador**. Solo se hace una vez.
+
+Ese script:
+- Crea la tarea programada "LabControl Servidor", que arranca el servidor al prender la PC (aunque nadie inicie sesion) y lo vuelve a iniciar si se detiene.
+- Abre en el firewall TCP 80 y 3100 y UDP 3101, **solo para la red local**.
+- Descarga la copia local del panel, si hay internet.
+- Ofrece renombrar la PC a `LABCONTROL`.
+
+El registro queda en `server/servidor.log`. Para quitarlo: `Desinstalar servidor de esta PC.cmd`, como administrador. Las cuentas, reglas y la llave se conservan.
+
+**Arranque manual** (pruebas o sin instalar):
+Windows: doble clic en `Iniciar servidor.cmd`. Si el servidor ya esta instalado como servicio, solo avisa y no abre otro.
 Mac: doble clic en `Iniciar servidor.command` (la primera vez: clic derecho > Abrir).
 Terminal: `npm start` desde `pc-bridge`.
 

@@ -2,6 +2,13 @@
 setlocal DisableDelayedExpansion
 title LabControl - Servidor del laboratorio
 cd /d "%~dp0"
+schtasks /Query /TN "LabControl Servidor" >nul 2>&1
+if not errorlevel 1 (
+  echo El servidor ya esta instalado en esta PC y arranca solo.
+  echo Abre el panel en http://127.0.0.1 . No hace falta usar este archivo.
+  pause
+  exit /b 0
+)
 where node >nul 2>&1
 if errorlevel 1 (
   echo Instala Node.js LTS ^(22 o superior^) desde https://nodejs.org/en/download
