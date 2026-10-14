@@ -9,6 +9,9 @@ pc-bridge/
   server/users.demo.json     cuentas demo (se copian a users.json la primera vez)
   server/users.json          cuentas reales  -> NO se sube a Git
   server/audit.log           bitacora de cambios -> NO se sube a Git
+  server/discovery-private.pem  llave privada del servidor -> NO se sube a Git
+  server/discovery.js        responde a la busqueda automatica (UDP 3101)
+  agent/discovery.js         busca el servidor y verifica la firma
   config/labcontrol-config.json   IP del servidor para las PCs de alumnos
   app/                       app Electron del alumno (login, bandeja)
   agent/windows-agent.js     agente de consola (solo pruebas)
@@ -33,9 +36,29 @@ Terminal: `npm start` desde `pc-bridge`.
 Panel: `http://127.0.0.1:3100` en la misma PC, o `http://IP-DEL-SERVIDOR:3100` desde otra.
 
 La PC del servidor necesita:
-- IP fija en la red del laboratorio (reservala en el router).
-- El puerto 3100 abierto en su firewall solo para la red local.
-- No exponer el puerto a internet.
+- De preferencia, IP fija en la red del laboratorio (reservala en el router).
+- Abiertos en su firewall, solo para la red local: el puerto TCP 3100 (panel y reportes) y el UDP 3101 (busqueda automatica).
+- No exponer esos puertos a internet.
+
+### Busqueda automatica del servidor
+
+Si la IP de `labcontrol-config.json` no responde (o vale `"auto"`), la app del alumno pregunta por toda la red local donde esta el servidor:
+
+- El servidor contesta con su direccion **firmada** con una llave privada Ed25519 que solo existe en la PC del servidor (`server/discovery-private.pem`).
+- La app solo acepta respuestas firmadas por esa llave. La llave publica viaja en el instalador.
+- Cada pregunta lleva un numero aleatorio y una hora. Asi no sirve repetir una respuesta vieja ni alterar la direccion.
+- Un alumno que lea la llave publica no puede hacerse pasar por el servidor.
+- Si la app pierde la conexion varias veces seguidas, vuelve a buscar. Si el servidor cambio de IP, lo encuentra solo.
+
+Configuracion:
+
+1. Arranca el servidor una vez en la PC definitiva del servidor. Crea la llave y escribe `discoveryPublicKey` en `config/labcontrol-config.json`.
+2. Compila el instalador con **ese** `labcontrol-config.json`. Si compilas en otra PC, copia el archivo desde el servidor.
+3. Respalda `server/discovery-private.pem` fuera del servidor. Si se pierde o cambias de PC servidor, hay que generar otra llave y reinstalar el agente en las PCs. Mientras tanto, siguen funcionando con la IP del archivo.
+
+Sin `discoveryPublicKey` en la configuracion, la app solo usa la IP escrita.
+
+Limitacion: la busqueda evita servidores falsos, pero la conexion despues sigue siendo HTTP. Alguien con control de la red (por ejemplo, con ARP spoofing) aun podria interceptar el trafico.
 
 ## 2. Cuentas
 
@@ -66,7 +89,7 @@ Las contrasenas se guardan con scrypt y salt, nunca en texto plano.
 
 ## 3. Instalador para las PCs de alumnos
 
-1. Edita `config/labcontrol-config.json` con la IP fija del servidor.
+1. Edita `config/labcontrol-config.json` con la IP fija del servidor. Comprueba que tenga `discoveryPublicKey` (ver Busqueda automatica).
 2. En una PC Windows, doble clic en `Crear instalador Windows.cmd`.
 3. El resultado queda en `dist/LabControl-Agent-<version>-x64.exe`.
 
@@ -98,6 +121,7 @@ Las reglas y las excepciones solo las puede cambiar un maestro con sesion inicia
 ```powershell
 npm start
 npm run mock-agent -- --pcs 8
+npm run mock-agent -- --server auto    # prueba la busqueda automatica
 ```
 
 El simulador crea PCs con sesion y una en "Login pendiente".

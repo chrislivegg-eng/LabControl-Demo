@@ -8,14 +8,16 @@ Marca cada punto. Si algo falla, anota que paso y toma captura del panel y de cu
 - [ ] Reservar una IP fija para esa PC en el router (o pedirsela a sistemas).
 - [ ] Anotar la IP: `________________`
 - [ ] Poner esa IP en `pc-bridge/config/labcontrol-config.json`.
-- [ ] Compilar el instalador con `Crear instalador Windows.cmd`.
+- [ ] Arrancar el servidor una vez en la PC definitiva del servidor, para que escriba `discoveryPublicKey` en ese archivo.
+- [ ] Respaldar `pc-bridge/server/discovery-private.pem` fuera del servidor (USB o Drive privado).
+- [ ] Compilar el instalador con `Crear instalador Windows.cmd`, usando el `labcontrol-config.json` que ya tiene la llave.
 - [ ] Confirmar con sistemas que las cuentas de alumno en Windows son **estandar**, sin permisos de administrador.
 
 ## B. Servidor
 
 - [ ] Instalar Node.js 22 o superior en el servidor.
 - [ ] Iniciar con `Iniciar servidor.cmd` (Windows) o `Iniciar servidor.command` (Mac).
-- [ ] Permitir el puerto 3100 en el firewall, solo para la red local.
+- [ ] Permitir TCP 3100 y UDP 3101 en el firewall, solo para la red local.
 - [ ] Desde otra PC del laboratorio, abrir `http://IP:3100`. Debe aparecer el login del panel.
 - [ ] Crear las cuentas reales de maestros y alumnos con `npm run users` (ver `pc-bridge/README.md`).
 - [ ] Ejecutar `npm run users -- remove-demo`.
@@ -38,6 +40,8 @@ Panel en **Solo alertas** durante toda esta seccion.
 - [ ] Intentar cerrar la ventana de LabControl: debe seguir reportando.
 - [ ] En el icono de la bandeja **no** debe existir la opcion "Salir".
 - [ ] Reiniciar el servidor: en unos segundos la app vuelve a pedir login.
+- [ ] Busqueda automatica: en una PC de prueba, cambiar `serverUrl` a una IP que no exista en `C:\Program Files\LabControl Agent\resources\labcontrol-config.json` (como administrador) y reiniciar. La app debe encontrar el servidor sola.
+- [ ] Regresar `serverUrl` a la IP correcta.
 - [ ] Desde la PC de un alumno abrir `http://IP:3100`: sin cuenta de maestro no se ve nada.
 
 ## D. Prueba de bloqueo (una sola PC)

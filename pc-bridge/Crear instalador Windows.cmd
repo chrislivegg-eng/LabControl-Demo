@@ -14,6 +14,12 @@ echo.
 echo Revisa la IP del servidor antes de continuar:
 type "config\labcontrol-config.json"
 echo.
+findstr /c:"discoveryPublicKey" "config\labcontrol-config.json" >nul
+if errorlevel 1 (
+  echo AVISO: falta discoveryPublicKey. La busqueda automatica del servidor
+  echo no funcionara. Arranca el servidor una vez y copia aqui su config.
+  echo.
+)
 echo Si la IP no es la del servidor del laboratorio, cierra esta ventana,
 echo corrige config\labcontrol-config.json y vuelve a abrir este archivo.
 pause

@@ -4,6 +4,7 @@ import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defaultPaths, loadOrCreateKeys, startDiscoveryResponder } from './discovery.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const bridgeDir = path.resolve(__dirname, '..');
@@ -776,6 +777,15 @@ const server = http.createServer((request, response) => {
   response.writeHead(405, { Allow: 'GET, HEAD, POST' });
   response.end('Method not allowed');
 });
+
+if (process.env.LABCONTROL_DISCOVERY !== 'off') {
+  try {
+    const { privateKey } = loadOrCreateKeys(defaultPaths(__dirname));
+    startDiscoveryResponder({ privateKey, httpPort: PORT });
+  } catch (error) {
+    console.error(`Descubrimiento automatico desactivado: ${error.message}`);
+  }
+}
 
 server.listen(PORT, HOST, () => {
   console.log(`LabControl PC Bridge listo en http://${HOST}:${PORT}`);

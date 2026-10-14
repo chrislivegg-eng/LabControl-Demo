@@ -178,12 +178,14 @@ Configuracion actual de referencia:
 }
 ```
 
+Si la IP configurada no responde, la app busca el servidor en la red local por UDP 3101 y solo acepta respuestas firmadas con la llave del servidor (Ed25519). La llave privada esta en `server/discovery-private.pem`, que no se sube a Git y se debe respaldar. La llave publica se escribe sola en `discoveryPublicKey`. Detalles en `pc-bridge/README.md`.
+
 Antes de distribuir el instalador:
 
 1. Confirmar la IP local fija de la Mac.
 2. Actualizar `serverUrl`.
 3. Levantar el servidor con esa IP disponible en la red.
-4. Permitir el puerto `3100` en el firewall.
+4. Permitir TCP `3100` y UDP `3101` en el firewall, solo para la red local.
 5. Probar desde dos o tres PCs.
 6. Despues instalar en todas las PCs autorizadas.
 

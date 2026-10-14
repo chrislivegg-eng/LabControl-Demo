@@ -2,10 +2,11 @@ import { execFile } from 'node:child_process';
 import os from 'node:os';
 import { promisify } from 'node:util';
 import { loadAgentConfig } from './config.js';
+import { resolveServerUrl } from './discovery.js';
 
 const execFileAsync = promisify(execFile);
 const AGENT_CONFIG = loadAgentConfig();
-const SERVER_URL = AGENT_CONFIG.serverUrl;
+let SERVER_URL = AGENT_CONFIG.serverUrl;
 const AGENT_ID = process.env.LABCONTROL_AGENT_ID || os.hostname();
 const ENABLE_BLOCKING = process.argv.includes('--enable-blocking');
 const LOGIN_RETRY_MS = Number(process.env.LABCONTROL_LOGIN_RETRY_MS || 5000);
@@ -370,6 +371,7 @@ async function reportLoop() {
 }
 
 async function main() {
+  SERVER_URL = await resolveServerUrl(AGENT_CONFIG, { log: message => console.log(message) });
   const session = await loginAgent();
   console.log(`LabControl Windows Agent conectado a ${SERVER_URL}`);
   console.log(`Sesion iniciada como: ${session.displayName}`);

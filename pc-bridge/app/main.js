@@ -5,11 +5,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { loadAgentConfig } from '../agent/config.js';
+import { resolveServerUrl } from '../agent/discovery.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AGENT_CONFIG = loadAgentConfig();
-const SERVER_URL = AGENT_CONFIG.serverUrl;
+let serverUrl = AGENT_CONFIG.serverUrl;
+let networkFailures = 0;
+let locating = null;
 const AGENT_ID = process.env.LABCONTROL_AGENT_ID || os.hostname();
 const LOGIN_RETRY_MS = Number(process.env.LABCONTROL_LOGIN_RETRY_MS || 5000);
 const ENABLE_BLOCKING = process.argv.includes('--enable-blocking');
@@ -77,8 +80,33 @@ function showLoginWindow() {
   mainWindow.setAlwaysOnTop(!activeSession);
 }
 
+// Busca el servidor (IP del archivo o busqueda firmada en la red).
+function locateServer() {
+  if (!locating) {
+    locating = resolveServerUrl(AGENT_CONFIG, {
+      log: message => mainWindow?.webContents.send('agent-status', message)
+    }).then(url => {
+      serverUrl = url;
+      networkFailures = 0;
+      return url;
+    }).finally(() => {
+      locating = null;
+    });
+  }
+  return locating;
+}
+
 async function fetchJson(pathname, options = {}) {
-  const response = await fetch(`${SERVER_URL}${pathname}`, { ...options, signal: AbortSignal.timeout(8000) });
+  let response;
+  try {
+    response = await fetch(`${serverUrl}${pathname}`, { ...options, signal: AbortSignal.timeout(8000) });
+    networkFailures = 0;
+  } catch (error) {
+    // Tras varios fallos seguidos el servidor pudo cambiar de IP: buscarlo otra vez.
+    networkFailures += 1;
+    if (networkFailures >= 3) locateServer().catch(() => {});
+    throw error;
+  }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(payload.error || `Error ${response.status}`);
@@ -280,7 +308,7 @@ function startReporting() {
 }
 
 ipcMain.handle('agent:get-context', () => ({
-  serverUrl: SERVER_URL,
+  serverUrl,
   pc: os.hostname(),
   agentId: AGENT_ID,
   loggedIn: Boolean(activeSession),
@@ -328,7 +356,7 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   createWindow();
   createTray();
-  startPendingLoop();
+  locateServer().catch(() => {}).finally(() => startPendingLoop());
 });
 
 app.on('activate', () => {
