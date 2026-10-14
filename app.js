@@ -1,4 +1,4 @@
-const activities = [
+let activities = [
   { name: 'Ana Lopez', pc: 'PC-LAB-07', app: 'Microsoft Word', time: '32 min', status: 'Permitido', allowed: true },
   { name: 'Carlos Ruiz', pc: 'PC-LAB-12', app: 'Google Chrome', time: '21 min', status: 'Permitido', allowed: true },
   { name: 'Sofia Torres', pc: 'PC-LAB-03', app: 'Minecraft', time: '7 min', status: 'No permitido', allowed: false },
@@ -11,7 +11,7 @@ const activities = [
   { name: 'Lucas Morales', pc: 'PC-LAB-04', app: 'Python IDLE', time: '35 min', status: 'Permitido', allowed: true }
 ];
 
-const students = [ 
+let students = [ 
   ['Ana Lopez', 'PC-LAB-07 · Sesion activa'], 
   ['Carlos Ruiz', 'PC-LAB-12 · Sesion activa'], 
   ['Sofia Torres', 'PC-LAB-03 · Alerta pendiente'], 
@@ -40,12 +40,18 @@ function renderActivityRows(list) {
       ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
       : 'bg-red-50 text-red-600 border-red-100';
     const iconState = item.allowed ? '✓' : '⚠️';
+    const pageDetail = item.detail || 'Sin página detectada';
 
     return `
       <tr class="hover:bg-gray-50/50 transition">
-          <td class="py-3.5 px-2 font-medium text-gray-900">${item.name}</td>
-          <td class="py-3.5 px-2 text-gray-500">${item.pc}</td>
-          <td class="py-3.5 px-2 text-gray-800">${item.app}</td>
+          <td class="py-3.5 px-2 font-medium text-gray-900">${escapeHtml(item.name)}</td>
+          <td class="py-3.5 px-2 text-gray-500">${escapeHtml(item.pc)}</td>
+          <td class="py-3.5 px-2 text-gray-800">
+              <span class="activity-app">${escapeHtml(item.app)}</span>
+          </td>
+          <td class="py-3.5 px-2 text-gray-600">
+              <span class="activity-detail">${escapeHtml(pageDetail)}</span>
+          </td>
           <td class="py-3.5 px-2 text-gray-600">${item.time}</td>
           <td class="py-3.5 px-2">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeColor}">
@@ -57,9 +63,20 @@ function renderActivityRows(list) {
   }).join('');
 }
 
-document.querySelector('#activity-body').innerHTML = renderActivityRows(activities.slice(0, 4));
-document.querySelector('#activity-full-body').innerHTML = renderActivityRows(activities);
-document.querySelector('#students-list').innerHTML = students.map(([name, detail]) => {
+function escapeHtml(value = '') {
+  return String(value).replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[character]));
+}
+
+function renderStudentsList(list) {
+  const studentsList = document.querySelector('#students-list');
+  if (!studentsList) return;
+  studentsList.innerHTML = list.map(([name, detail]) => {
   const initials = name.split(' ').map(n => n[0]).join('');
   const isAlert = detail.includes('Alerta');
   const badgeClass = isAlert 
@@ -80,14 +97,44 @@ document.querySelector('#students-list').innerHTML = students.map(([name, detail
       </div>
     </div>
   `;
-}).join('');
+  }).join('');
+}
+
+function renderLabData(list, summary = {}) {
+  const activityBody = document.querySelector('#activity-body');
+  const activityFullBody = document.querySelector('#activity-full-body');
+  const metricSessions = document.querySelector('#metric-sessions');
+  const metricPcs = document.querySelector('#metric-pcs');
+  const metricAlerts = document.querySelector('#metric-alerts');
+  const metricAcademic = document.querySelector('#metric-academic');
+
+  activities = list;
+  students = list.map(item => [
+    item.name,
+    `${item.pc} · ${item.allowed ? 'Sesion activa' : 'Alerta pendiente'}`
+  ]);
+
+  if (activityBody) activityBody.innerHTML = renderActivityRows(list.slice(0, 4));
+  if (activityFullBody) activityFullBody.innerHTML = renderActivityRows(list);
+  renderStudentsList(students);
+
+  const alertCount = list.filter(item => !item.allowed).length;
+  const academicPercent = list.length ? Math.round((list.length - alertCount) / list.length * 100) : 0;
+
+  if (metricSessions) metricSessions.textContent = summary.activeSessions ?? list.length;
+  if (metricPcs) metricPcs.textContent = summary.connectedPcs ?? new Set(list.map(item => item.pc)).size;
+  if (metricAlerts) metricAlerts.textContent = summary.alerts ?? alertCount;
+  if (metricAcademic) metricAcademic.textContent = `${summary.academicUsePercent ?? academicPercent}%`;
+}
+
+renderLabData(activities);
 
 // 2. GRÁFICA DE CHART.JS CON EL EJE DE MINUTOS
 const contenedorBarras = document.querySelector('#app-bars');
 contenedorBarras.innerHTML = '<canvas id="graficaUso"></canvas>';
 const ctxGrafica = document.getElementById('graficaUso').getContext('2d');
 
-new Chart(ctxGrafica, {
+const usageChart = new Chart(ctxGrafica, {
     type: 'bar',
     data: {
         labels: ["Google Chrome", "Microsoft Word", "PowerPoint", "YouTube", "Minecraft", "PDF Reader"],
@@ -123,6 +170,314 @@ new Chart(ctxGrafica, {
     }
 });
 
+function updateUsageChart(list) {
+  if (!usageChart) return;
+  const minutesByApp = list.reduce((accumulator, item) => {
+    const minutes = Number.parseInt(item.time, 10) || 0;
+    accumulator[item.app] = (accumulator[item.app] || 0) + minutes;
+    return accumulator;
+  }, {});
+  usageChart.data.labels = Object.keys(minutesByApp);
+  usageChart.data.datasets[0].data = Object.values(minutesByApp);
+  usageChart.update();
+}
+
+const AGENT_API_URL = window.LABCONTROL_AGENT_API_URL || '';
+const RULES_API_URL = AGENT_API_URL ? '/api/lab/rules' : '';
+const RULES_EXCEPTION_API_URL = AGENT_API_URL ? '/api/lab/rules/exception' : '';
+const TEACHER_LOGIN_API_URL = AGENT_API_URL ? '/api/teacher/login' : '';
+let activeTeacher = null;
+const agentStatus = document.querySelector('#agent-status');
+const notifiedAlertKeys = new Set();
+let browserNotificationsEnabled = window.localStorage.getItem('labcontrol-browser-notifications') === 'enabled' && 'Notification' in window && Notification.permission === 'granted';
+
+async function refreshAgentData() {
+  if (!AGENT_API_URL) return;
+
+  try {
+    const response = await fetch(AGENT_API_URL);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No fue posible leer los equipos.');
+    if (Array.isArray(payload.activities)) {
+      renderLabData(payload.activities, payload.summary || {});
+      updateUsageChart(payload.activities);
+      notifyNewAlerts(payload.activities);
+    }
+    if (agentStatus) {
+      agentStatus.textContent = `En vivo · ${payload.summary?.connectedPcs ?? 0} PCs`;
+      agentStatus.classList.add('online');
+    }
+  } catch (error) {
+    if (agentStatus) {
+      agentStatus.textContent = 'Servidor local sin datos';
+      agentStatus.classList.remove('online');
+    }
+  }
+}
+
+if (AGENT_API_URL) {
+  refreshAgentData();
+  window.setInterval(refreshAgentData, 5000);
+}
+
+const ruleBlockEnabled = document.querySelector('#rule-block-enabled');
+const ruleBlockLabel = document.querySelector('#rule-block-label');
+const blockedList = document.querySelector('#blocked-list');
+const blockedWebList = document.querySelector('#blocked-web-list');
+const exceptionsList = document.querySelector('#exceptions-list');
+const rulesMessage = document.querySelector('#rules-message');
+const webRuleForm = document.querySelector('#web-rule-form');
+const webRuleInput = document.querySelector('#web-rule-input');
+
+function formatRuleList(list = []) {
+  return list.length ? list.map(item => item.charAt(0).toUpperCase() + item.slice(1)).join(', ') : 'Ninguna regla configurada.';
+}
+
+function formatWebRuleList(rules = {}) {
+  const groups = [
+    ['Dominios', rules.blockedDomains || []],
+    ['Sufijos', rules.blockedDomainSuffixes || []],
+    ['Palabras', rules.blockedKeywords || []]
+  ].filter(([, list]) => list.length);
+
+  if (!groups.length) return 'Ninguna regla web configurada.';
+
+  return groups
+    .map(([label, list]) => `${label}: ${list.join(', ')}`)
+    .join(' · ');
+}
+
+function renderRulesPanel(rules) {
+  if (!ruleBlockEnabled) return;
+  ruleBlockEnabled.checked = Boolean(rules.blockEnabled);
+  if (ruleBlockLabel) ruleBlockLabel.textContent = rules.blockEnabled ? 'Bloqueo activo' : 'Solo alertas';
+  if (blockedList) blockedList.textContent = formatRuleList([...(rules.blockedApps || []), ...(rules.blockedPages || [])]);
+  if (blockedWebList) blockedWebList.textContent = formatWebRuleList(rules);
+  if (exceptionsList) exceptionsList.textContent = formatRuleList(rules.exceptions || []).replace('Ninguna regla configurada.', 'Sin excepciones por ahora.');
+}
+
+async function loadRulesPanel() {
+  if (!RULES_API_URL || !ruleBlockEnabled) return;
+  try {
+    const response = await fetch(RULES_API_URL);
+    const rules = await response.json();
+    if (!response.ok) throw new Error(rules.error || 'No fue posible leer reglas.');
+    renderRulesPanel(rules);
+  } catch (error) {
+    if (rulesMessage) rulesMessage.textContent = error.message;
+  }
+}
+
+async function saveRulesPatch(patch) {
+  const response = await fetch(RULES_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch)
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'No fue posible guardar reglas.');
+  renderRulesPanel(payload.rules);
+  if (rulesMessage) rulesMessage.textContent = 'Reglas actualizadas para la siguiente lectura de los agentes.';
+}
+
+ruleBlockEnabled?.addEventListener('change', () => {
+  saveRulesPatch({ blockEnabled: ruleBlockEnabled.checked }).catch(error => {
+    if (rulesMessage) rulesMessage.textContent = error.message;
+    ruleBlockEnabled.checked = !ruleBlockEnabled.checked;
+  });
+});
+
+webRuleForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  const value = webRuleInput?.value.trim();
+
+  if (!value) {
+    if (rulesMessage) rulesMessage.textContent = 'Escribe una página, dominio, sufijo o palabra para bloquear.';
+    return;
+  }
+
+  saveRulesPatch({ addBlockedWebRule: value })
+    .then(() => {
+      if (webRuleInput) webRuleInput.value = '';
+      if (rulesMessage) rulesMessage.textContent = `${value} quedó guardado como regla web prohibida.`;
+    })
+    .catch(error => {
+      if (rulesMessage) rulesMessage.textContent = error.message;
+    });
+});
+
+document.querySelectorAll('[data-exception-action]').forEach(button => {
+  button.addEventListener('click', async () => {
+    try {
+      const response = await fetch(RULES_EXCEPTION_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: button.dataset.exception,
+          action: button.dataset.exceptionAction
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'No fue posible cambiar la excepción.');
+      renderRulesPanel(payload.rules);
+      if (rulesMessage) {
+        rulesMessage.textContent = button.dataset.exceptionAction === 'allow'
+          ? 'YouTube permitido por excepción para esta clase.'
+          : 'YouTube vuelve a estar sujeto a las reglas del laboratorio.';
+      }
+    } catch (error) {
+      if (rulesMessage) rulesMessage.textContent = error.message;
+    }
+  });
+});
+
+
+function getAlertKey(item) {
+  return [item.pc, item.app, item.detail || '', item.status].join('|');
+}
+
+function buildAlertMessage(item) {
+  const page = item.detail ? ` · ${item.detail}` : '';
+  return `${item.name} en ${item.pc}: ${item.app}${page}`;
+}
+
+function sendBrowserAlert(item) {
+  if (!browserNotificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const notification = new Notification('Alerta de LabControl', {
+    body: buildAlertMessage(item),
+    tag: getAlertKey(item),
+    renotify: false
+  });
+
+  notification.onclick = () => {
+    window.focus();
+    openView('activity');
+    notification.close();
+  };
+}
+
+function notifyNewAlerts(list = []) {
+  list.filter(item => !item.allowed).forEach(item => {
+    const key = getAlertKey(item);
+    if (notifiedAlertKeys.has(key)) return;
+
+    notifiedAlertKeys.add(key);
+    showLabToast({
+      title: item.status === 'Requiere login' ? 'Login pendiente' : 'Alerta detectada',
+      message: buildAlertMessage(item),
+      type: 'warning'
+    });
+    sendBrowserAlert(item);
+  });
+}
+
+function getNotificationHelpMessage() {
+  if (!('Notification' in window)) return 'Este navegador no soporta notificaciones del sistema.';
+  if (Notification.permission === 'denied') {
+    return 'Las notificaciones están bloqueadas por el navegador. Abre el candado/controles del sitio junto a la URL, cambia Notificaciones a Permitir y recarga la página.';
+  }
+  if (!window.isSecureContext) {
+    return 'El navegador puede bloquear notificaciones en esta IP. Si no aparece el permiso, usa localhost en la misma PC o una URL con HTTPS.';
+  }
+  return 'Presiona Activar notificaciones para permitir alertas del sistema.';
+}
+
+function updateNotificationButtonState() {
+  const button = document.querySelector('#enable-browser-notifications');
+  const testButton = document.querySelector('#test-browser-notification');
+  if (!button) return;
+
+  if (!('Notification' in window)) {
+    button.textContent = 'No soportadas';
+    button.disabled = true;
+    if (testButton) testButton.disabled = true;
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    browserNotificationsEnabled = true;
+    window.localStorage.setItem('labcontrol-browser-notifications', 'enabled');
+    button.textContent = 'Notificaciones activas';
+    button.classList.remove('blocked');
+    if (testButton) testButton.disabled = false;
+    return;
+  }
+
+  browserNotificationsEnabled = false;
+  window.localStorage.removeItem('labcontrol-browser-notifications');
+  if (Notification.permission === 'denied') {
+    button.textContent = 'Bloqueadas por navegador';
+    button.classList.add('blocked');
+    if (testButton) testButton.disabled = true;
+  } else {
+    button.textContent = 'Activar notificaciones';
+    button.classList.remove('blocked');
+    if (testButton) testButton.disabled = false;
+  }
+}
+
+async function requestBrowserNotifications() {
+  if (!('Notification' in window)) {
+    if (rulesMessage) rulesMessage.textContent = getNotificationHelpMessage();
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    const help = getNotificationHelpMessage();
+    if (rulesMessage) rulesMessage.textContent = help;
+    showLabToast({ title: 'Notificaciones bloqueadas', message: help, type: 'warning' });
+    updateNotificationButtonState();
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  browserNotificationsEnabled = permission === 'granted';
+  updateNotificationButtonState();
+
+  if (browserNotificationsEnabled) {
+    showLabToast({
+      title: 'Notificaciones activadas',
+      message: 'Las alertas nuevas también aparecerán como notificación del navegador.'
+    });
+  } else {
+    const help = getNotificationHelpMessage();
+    if (rulesMessage) rulesMessage.textContent = help;
+    showLabToast({ title: 'No se activaron', message: help, type: 'warning' });
+  }
+}
+
+function testBrowserNotification() {
+  if (!browserNotificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') {
+    const help = getNotificationHelpMessage();
+    if (rulesMessage) rulesMessage.textContent = help;
+    showLabToast({ title: 'Notificación no disponible', message: help, type: 'warning' });
+    updateNotificationButtonState();
+    return;
+  }
+
+  new Notification('LabControl funcionando', {
+    body: 'Las alertas del laboratorio ya pueden salir como notificación del navegador.',
+    tag: 'labcontrol-test-notification'
+  });
+}
+
+const enableBrowserNotificationsButton = document.querySelector('#enable-browser-notifications');
+if (enableBrowserNotificationsButton) {
+  updateNotificationButtonState();
+  enableBrowserNotificationsButton.addEventListener('click', () => {
+    requestBrowserNotifications().catch(error => {
+      if (rulesMessage) rulesMessage.textContent = error.message;
+    });
+  });
+}
+
+const testBrowserNotificationButton = document.querySelector('#test-browser-notification');
+testBrowserNotificationButton?.addEventListener('click', testBrowserNotification);
+
+loadRulesPanel();
+
+
 // 3. NAVEGACIÓN Y ACCIONES DEL SISTEMA
 const titles = { 
   dashboard: 'Resumen del laboratorio', 
@@ -141,13 +496,49 @@ function openView(name) {
 document.querySelectorAll('.nav-item').forEach(button => button.addEventListener('click', () => openView(button.dataset.view)));
 document.querySelectorAll('[data-open]').forEach(button => button.addEventListener('click', () => openView(button.dataset.open)));
 
-document.querySelector('#login-form').addEventListener('submit', event => { 
-  event.preventDefault(); 
-  document.querySelector('#login-view').classList.add('hidden'); 
-  document.querySelector('#dashboard-view').classList.remove('hidden'); 
+document.querySelector('#login-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const loginMessage = document.querySelector('#login-message');
+  const usernameInput = document.querySelector('#username');
+  const passwordInput = document.querySelector('#password');
+
+  if (loginMessage) loginMessage.textContent = 'Validando acceso de maestro...';
+
+  try {
+    if (TEACHER_LOGIN_API_URL) {
+      const response = await fetch(TEACHER_LOGIN_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: usernameInput?.value,
+          password: passwordInput?.value
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'No fue posible iniciar sesión.');
+      activeTeacher = payload;
+    } else {
+      activeTeacher = { displayName: usernameInput?.value || 'Docente Demo', role: 'teacher' };
+    }
+
+    document.querySelector('#login-view').classList.add('hidden');
+    document.querySelector('#dashboard-view').classList.remove('hidden');
+    showLabToast({
+      title: 'Sesión de maestro iniciada',
+      message: `Bienvenido, ${activeTeacher.displayName}.`
+    });
+  } catch (error) {
+    if (loginMessage) loginMessage.textContent = error.message;
+    showLabToast({
+      title: 'Acceso rechazado',
+      message: error.message,
+      type: 'warning'
+    });
+  }
 });
 
 document.querySelector('#logout').addEventListener('click', () => { 
+  activeTeacher = null;
   document.querySelector('#dashboard-view').classList.add('hidden'); 
   document.querySelector('#login-view').classList.remove('hidden'); 
 });
@@ -155,8 +546,44 @@ document.querySelector('#logout').addEventListener('click', () => {
 document.querySelector('#print-report').addEventListener('click', () => window.print());
 
 // Funciones interactivas de los botones de la demo
+function showLabToast({ title, message, type = 'success' }) {
+  let toast = document.querySelector('#lab-toast');
+
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'lab-toast';
+    toast.className = 'lab-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `
+    <div class="lab-toast-icon">${type === 'success' ? '✓' : '!'}</div>
+    <div>
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(message)}</p>
+    </div>
+  `;
+
+  toast.classList.remove('show', 'success', 'warning');
+  toast.classList.add(type, 'show');
+
+  window.clearTimeout(showLabToast.hideTimer);
+  showLabToast.hideTimer = window.setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3200);
+}
+
 function actualizarDatosDashboard() {
-    alert("¡Datos del laboratorio actualizados correctamente!");
+  if (AGENT_API_URL) {
+    refreshAgentData();
+  }
+
+  showLabToast({
+    title: 'Datos actualizados',
+    message: 'La información del laboratorio se sincronizó correctamente.'
+  });
 }
 
 function verTodasLasActividades() {

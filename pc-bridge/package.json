@@ -1,0 +1,51 @@
+{
+  "name": "labcontrol-pc-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "mock-agent": "node agent/mock-agent.js",
+    "windows-agent": "node agent/windows-agent.js",
+    "agent-app": "electron app/main.js",
+    "build:win": "electron-builder --win nsis",
+    "build:win-portable": "electron-builder --win portable"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "description": "LabControl local PC bridge and Windows agent app prototype",
+  "main": "app/main.js",
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "edu.colegiociudadano.labcontrol.agent",
+    "productName": "LabControl Agent",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "agent/**/*",
+      "server/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "LabControl-Agent-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LabControl Agent"
+    }
+  }
+}

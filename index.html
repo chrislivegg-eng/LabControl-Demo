@@ -23,11 +23,11 @@
           <h1>Supervisión de Equipos</h1>
           <p>Inicia sesión para gestionar el uso responsable de los equipos de trabajo.</p>
           <form id="login-form">
-            <label>Usuario<input id="username" value="docente" required /></label>
-            <label>Contraseña<input id="password" type="password" value="demo" required /></label>
+            <label>Usuario<input id="username" placeholder="Usuario del maestro" autocomplete="username" required /></label>
+            <label>Contraseña<input id="password" type="password" placeholder="Contraseña" autocomplete="current-password" required /></label>
             <button type="submit">Iniciar sesión <span>→</span></button>
           </form>
-          <p class="privacy-note">Esta demo usa información ficticia. No registra contraseñas, mensajes ni teclas.</p>
+          <p class="privacy-note" id="login-message">Esta demo usa información ficticia. No registra contraseñas, mensajes ni teclas.</p>
         </div>
         <p class="login-footer">Colegio Ciudadano · Proyecto de ciencias</p>
       </section>
@@ -110,6 +110,7 @@
               <h2 id="page-title">Resumen del laboratorio</h2>
             </div>
             <div class="topbar-actions">
+              <span class="agent-status" id="agent-status">Datos demo</span>
               <button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span>Asistente IA</button>
             </div>
           </header>
@@ -146,7 +147,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                   </div>
                   <div>
-                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">12</span>
+                    <span id="metric-sessions" class="text-4xl font-black text-gray-900 tracking-tight block mb-1">12</span>
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Sesiones activas</span>
                   </div>
                 </div>
@@ -160,7 +161,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
                   </div>
                   <div>
-                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">18</span>
+                    <span id="metric-pcs" class="text-4xl font-black text-gray-900 tracking-tight block mb-1">18</span>
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Equipos conectados</span>
                   </div>
                 </div>
@@ -174,7 +175,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                   </div>
                   <div>
-                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">2</span>
+                    <span id="metric-alerts" class="text-4xl font-black text-gray-900 tracking-tight block mb-1">2</span>
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Alertas</span>
                   </div>
                 </div>
@@ -188,7 +189,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
                   </div>
                   <div>
-                    <span class="text-4xl font-black text-orange-600 tracking-tight block mb-1">86%</span>
+                    <span id="metric-academic" class="text-4xl font-black text-orange-600 tracking-tight block mb-1">86%</span>
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Uso académico</span>
                   </div>
                 </div>
@@ -207,6 +208,7 @@
                             <th class="pb-3 px-2">Estudiante</th>
                             <th class="pb-3 px-2">Equipo</th>
                             <th class="pb-3 px-2">Aplicación</th>
+                            <th class="pb-3 px-2">Página actual</th>
                             <th class="pb-3 px-2">Tiempo</th>
                             <th class="pb-3 px-2">Estado</th>
                           </tr>
@@ -257,6 +259,7 @@
                         <th class="pb-3 px-2">Estudiante</th>
                         <th class="pb-3 px-2">Equipo</th>
                         <th class="pb-3 px-2">Aplicación</th>
+                        <th class="pb-3 px-2">Página actual</th>
                         <th class="pb-3 px-2">Tiempo</th>
                         <th class="pb-3 px-2">Estado</th>
                       </tr>
@@ -346,20 +349,51 @@
                 <h3 class="text-2xl font-black text-gray-900 tracking-tight mb-6">Ajustes del Laboratorio</h3>
                 
                 <div class="space-y-6">
-                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div>
-                      <h4 class="text-sm font-bold text-gray-900">Bloqueo automático de aplicaciones no permitidas</h4>
-                      <p class="text-xs text-gray-500 mt-0.5">Restringe el uso de juegos y redes sociales automáticamente.</p>
+                  <div class="teacher-rule-panel">
+                    <div class="teacher-rule-header">
+                      <div>
+                        <span class="text-xs font-bold text-orange-600 tracking-widest uppercase block mb-1">Panel del maestro</span>
+                        <h4>Control de apps y páginas prohibidas</h4>
+                        <p>Activa el bloqueo para cerrar apps o páginas marcadas como no permitidas. Las excepciones permiten una página cuando sí forma parte de la clase.</p>
+                      </div>
+                      <label class="rule-switch">
+                        <input type="checkbox" id="rule-block-enabled" />
+                        <span></span>
+                        <strong id="rule-block-label">Solo alertas</strong>
+                      </label>
                     </div>
-                    <input type="checkbox" checked class="w-5 h-5 accent-orange-500 rounded cursor-pointer" />
-                  </div>
 
-                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div>
-                      <h4 class="text-sm font-bold text-gray-900">Alertas de sonido en tiempo real</h4>
-                      <p class="text-xs text-gray-500 mt-0.5">Emitir aviso visual y sonoro cuando un equipo rompa las reglas.</p>
+                    <div class="rule-grid">
+                      <div class="rule-box danger">
+                        <h5>Apps y páginas base</h5>
+                        <p id="blocked-list">Cargando reglas...</p>
+                      </div>
+                      <div class="rule-box web">
+                        <h5>Reglas web</h5>
+                        <p id="blocked-web-list">Cargando reglas web...</p>
+                      </div>
+                      <div class="rule-box allow">
+                        <h5>Excepciones activas</h5>
+                        <p id="exceptions-list">Sin excepciones por ahora.</p>
+                      </div>
                     </div>
-                    <input type="checkbox" checked class="w-5 h-5 accent-orange-500 rounded cursor-pointer" />
+
+                    <form class="web-rule-form" id="web-rule-form">
+                      <label for="web-rule-input">Agregar página, dominio o patrón prohibido</label>
+                      <div>
+                        <input id="web-rule-input" name="webRule" placeholder="agar.io, .io, youtube.com o palabra" autocomplete="off" />
+                        <button type="submit">Agregar</button>
+                      </div>
+                    </form>
+
+                    <div class="exception-actions">
+                      <button type="button" class="exception-btn allow" data-exception-action="allow" data-exception="youtube">Permitir YouTube para esta clase</button>
+                      <button type="button" class="exception-btn remove" data-exception-action="remove" data-exception="youtube">Quitar excepción de YouTube</button>
+                      <button type="button" class="exception-btn notify" id="enable-browser-notifications">Activar notificaciones</button>
+                      <button type="button" class="exception-btn notify secondary" id="test-browser-notification">Probar notificación</button>
+                    </div>
+
+                    <p class="rule-note" id="rules-message">Los cambios se aplican a los agentes conectados en su siguiente reporte.</p>
                   </div>
 
                   <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">

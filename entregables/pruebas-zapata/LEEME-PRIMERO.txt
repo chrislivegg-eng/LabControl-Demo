@@ -1,0 +1,79 @@
+LABCONTROL - PRUEBAS EN LA PC DE ZAPATA
+Paquete de pruebas: 12 de septiembre de 2026
+
+QUE ES
+La app del alumno para Windows, el servidor local y el panel del maestro,
+con los cambios actuales del proyecto. Puedes probar los tres en tu misma
+PC aunque estes en otra casa o en otra red. No necesitas la Mac de Chris.
+
+Es la version de desarrollo para pruebas. Este ZIP no es un instalador
+EXE independiente: prepara las dependencias y abre la app con los CMD.
+
+PREPARACION
+1. Instala Node.js LTS para Windows, version 22 o superior:
+   https://nodejs.org/en/download
+2. Extrae TODO el ZIP a una carpeta normal. No lo ejecutes dentro del ZIP.
+3. Abre 01-Preparar.cmd y espera a que termine. Requiere internet.
+4. Abre 02-Iniciar-servidor.cmd. Deja esa ventana abierta.
+5. Abre 03-Abrir-app.cmd. Se abren el navegador y la app de LabControl.
+
+CUENTAS DE DEMOSTRACION DE ESTE PAQUETE
+En la app del alumno: alumno1 / Alumno2026!
+En el navegador, panel del maestro: maestro / Maestro2026!
+Direccion del panel: http://127.0.0.1:3100
+Son dos inicios de sesion distintos, aunque uses la misma computadora.
+
+QUE PROBAR
+1. Antes de entrar en la app, la PC debe aparecer como Login pendiente.
+2. Entra como alumno1. La app se queda en segundo plano.
+3. Entra como maestro en el navegador. Debes ver tu PC y Alumno Demo.
+4. Abre Word, Bloc de notas u otra app. Espera unos 5 segundos antes de
+   volver al panel para comprobar el ultimo reporte recibido.
+   Al cambiar de ventana, el agente pasa a reportar la ventana nueva.
+5. Prueba YouTube y una aplicacion de juegos. Anota el proceso, el titulo
+   detectado y si aparece como permitido o no permitido.
+6. En Configuracion, agrega agar.io como regla. Comprueba que se guarde
+   despues de cerrar y volver a abrir el servidor.
+7. Regresa al estado de solo alertas al terminar la prueba.
+
+BLOQUEO
+El paquete empieza con Bloqueo activo APAGADO: reporta y muestra alertas,
+sin cerrar tus aplicaciones. Para probar cierres, guarda tu trabajo y
+activa Bloqueo activo desde Configuracion de ESTE servidor local.
+La app toma ese ajuste en su siguiente reporte. Para detener los cierres,
+desactiva ese mismo interruptor o sal de la app con Salir de prueba.
+
+IMPORTANTE SOBRE LAS PAGINAS
+El agente actual reporta titulo de ventana y proceso, no la URL exacta.
+YouTube puede coincidir por titulo. Que agar.io o una pagina .io se vean
+permitidos no prueba que la lista se haya perdido: puede faltar el dominio
+en el titulo que envio Windows. Esa limitacion aun debe resolverse.
+El panel incluye reportes de demostracion; no confundirlos con historial
+persistente de la actividad real.
+
+COMO CERRAR LA PRUEBA
+1. En la flechita de iconos de Windows, busca LabControl.
+2. Clic derecho y Salir de prueba.
+3. En la ventana del servidor presiona Ctrl+C y confirma si Windows lo pide.
+4. Cierra las terminales y la pestana del panel.
+Este paquete no instala un servicio ni configura inicio automatico.
+
+ALCANCE Y CONEXION
+El servidor escucha solo en 127.0.0.1: lo ve tu propia PC.
+Chris no vera tus pruebas desde su Mac con esta configuracion.
+Para pruebas entre PCs se necesita una direccion accesible por ambas,
+por ejemplo dentro de la misma red. No uses la IP vieja de la Mac.
+La preparacion y las librerias web del panel requieren internet; aun no
+es un paquete totalmente offline.
+
+QUE REPORTARNOS
+- Version de Windows y arquitectura (x64 o ARM64).
+- Si se abren la app y el panel, y si funcionan ambos accesos.
+- Captura del panel con tu PC conectada.
+- Aplicacion o pagina probada, titulo detectado y resultado esperado/real.
+- Captura completa del error si algo falla.
+
+VALIDACION ANTES DE ENTREGAR
+Se revisan los archivos, accesos locales, autenticacion y reportes simulados
+en el servidor incluido. La ejecucion de los CMD, la captura de la ventana
+activa y los cierres deben validarse en tu Windows real.

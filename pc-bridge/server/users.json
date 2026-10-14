@@ -1,0 +1,16 @@
+[
+  {
+    "username": "alumno1",
+    "displayName": "Alumno Demo",
+    "passwordSalt": "b5776fd5c974b2700498d0bd38972556",
+    "passwordHash": "103a75493423fcef9927ff90fb14ff0741898cba498b02b37c867a938834731a",
+    "role": "student"
+  },
+  {
+    "username": "maestro",
+    "displayName": "Maestro",
+    "passwordSalt": "b2a3451c23a474e05b2f87af9fb1829a",
+    "passwordHash": "8d6e6f2785a9ec164fef761065dd60e254ff60395098f6deae1aab47c0411843",
+    "role": "teacher"
+  }
+]

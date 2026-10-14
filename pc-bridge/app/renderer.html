@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LabControl Agent</title>
+    <link rel="stylesheet" href="renderer.css" />
+  </head>
+  <body>
+    <main class="agent-shell">
+      <section class="login-card">
+        <div class="brand-mark">LC</div>
+        <p class="eyebrow">Colegio Ciudadano</p>
+        <h1>LabControl Agent</h1>
+        <p class="subtitle">Inicia sesión para usar esta PC del laboratorio.</p>
+
+        <div class="pc-card">
+          <span>Equipo</span>
+          <strong id="pc-name">Cargando...</strong>
+        </div>
+
+        <form id="login-form" autocomplete="off">
+          <label for="username">Usuario</label>
+          <input id="username" name="username" type="text" placeholder="chris" required />
+
+          <label for="password">Contraseña</label>
+          <input id="password" name="password" type="password" placeholder="••••••••" required />
+
+          <p class="message" id="message">Esta ventana se mantiene activa hasta iniciar sesión.</p>
+          <button type="submit" id="login-button">Iniciar sesión</button>
+        </form>
+
+        <p class="status" id="status">Conectando con LabControl...</p>
+      </section>
+    </main>
+    <script src="renderer.js"></script>
+  </body>
+</html>
