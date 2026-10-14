@@ -503,7 +503,80 @@ const titles = {
   students: 'Usuarios registrados',
   settings: 'Configuración del sistema' 
 };
+// --- Reporte de actividad sin conexion ---
+const OFFLINE_API_URL = AGENT_API_URL ? '/api/lab/offline' : '';
+const offlineReport = document.querySelector('#offline-report');
+const offlineReportBody = document.querySelector('#offline-report-body');
+
+function formatClock(ms) {
+  return new Date(ms).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDuration(seconds) {
+  const minutes = Math.round(seconds / 60);
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+function renderOfflineReport({ pcs = [] }) {
+  if (!offlineReportBody) return;
+  if (!pcs.length) {
+    offlineReportBody.innerHTML = '<p class="text-gray-400">Sin actividad sin conexión en los últimos 7 días.</p>';
+    return;
+  }
+  offlineReportBody.innerHTML = pcs.map(pc => {
+    const who = [...pc.students, ...pc.windowsUsers].filter(Boolean).join(', ') || 'Usuario desconocido';
+    const integrity = pc.integrityIssues
+      ? `<span class="inline-block bg-red-50 text-red-700 border border-red-100 rounded-lg px-2 py-0.5 text-xs font-semibold">${pc.integrityIssues} con posible alteración</span>`
+      : '<span class="inline-block bg-green-50 text-green-700 border border-green-100 rounded-lg px-2 py-0.5 text-xs font-semibold">Registro íntegro</span>';
+    const alerts = pc.alerts
+      ? `<span class="inline-block bg-orange-50 text-orange-700 border border-orange-100 rounded-lg px-2 py-0.5 text-xs font-semibold">${pc.alerts} no permitidas</span>`
+      : '';
+    const rows = pc.entries.map(entry => `
+      <tr class="${entry.allowed ? '' : 'bg-orange-50/50'}">
+        <td class="py-2 px-2 whitespace-nowrap">${escapeHtml(formatClock(entry.start))}</td>
+        <td class="py-2 px-2">${escapeHtml(entry.app)}</td>
+        <td class="py-2 px-2 text-gray-500">${escapeHtml(entry.title)}</td>
+        <td class="py-2 px-2 whitespace-nowrap">${escapeHtml(formatDuration((entry.end - entry.start) / 1000))}</td>
+        <td class="py-2 px-2 whitespace-nowrap">${entry.allowed ? 'Permitido' : '<strong class="text-orange-700">No permitido</strong>'}${entry.flags.length ? `<br><span class="text-xs text-red-600">${escapeHtml(entry.flags.join(', '))}</span>` : ''}</td>
+      </tr>`).join('');
+    return `
+      <section class="border border-gray-100 rounded-2xl p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <strong class="text-base text-gray-900">${escapeHtml(pc.pc)}</strong>
+          <span class="text-gray-500">· ${escapeHtml(who)}</span>
+          <span class="text-gray-500">· ${escapeHtml(formatClock(pc.from))} a ${escapeHtml(formatClock(pc.to))}</span>
+          <span class="text-gray-500">· ${escapeHtml(formatDuration(pc.totalSeconds))}</span>
+          ${alerts} ${integrity}
+        </div>
+        <div class="table-wrap overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead><tr class="text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+              <th class="pb-2 px-2">Hora</th><th class="pb-2 px-2">Aplicación</th><th class="pb-2 px-2">Ventana</th><th class="pb-2 px-2">Duración</th><th class="pb-2 px-2">Estado</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">${rows}</tbody>
+          </table>
+        </div>
+      </section>`;
+  }).join('');
+}
+
+async function loadOfflineReport() {
+  if (!OFFLINE_API_URL || !teacherToken || !offlineReport) return;
+  offlineReport.classList.remove('hidden');
+  try {
+    const response = await teacherFetch(OFFLINE_API_URL);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No fue posible leer la actividad sin conexión.');
+    renderOfflineReport(payload);
+  } catch (error) {
+    if (offlineReportBody) offlineReportBody.innerHTML = `<p class="text-red-600">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+document.querySelector('#offline-refresh')?.addEventListener('click', loadOfflineReport);
+
 function openView(name) {
+  if (name === 'report') loadOfflineReport();
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   document.querySelector(`#${name}-page`).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === name));

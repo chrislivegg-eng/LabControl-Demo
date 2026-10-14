@@ -56,7 +56,21 @@ Lo unico que si necesita internet es el asistente de IA remoto. Sin internet, us
 
 ### Si el servidor esta apagado
 
-La app del alumno no estorba: oculta la ventana de login, se queda en la bandeja ("sin servidor") y la PC se usa normal. En cuanto el servidor responde, vuelve a pedir login.
+La app del alumno no estorba: oculta la ventana de login, se queda en la bandeja ("sin servidor: registrando actividad") y la PC se usa normal. **No bloquea nada** sin servidor.
+
+Mientras tanto, guarda cada cambio de app o ventana con su hora, en `%APPDATA%\LabControl Agent\offline-log.json`, hasta 7 dias. Cuando el servidor vuelve:
+1. La app envia lo pendiente y lo borra de la PC.
+2. Vuelve a pedir login.
+3. El panel lo muestra en **Reportes > Actividad sin conexion**, por PC, con las apps o paginas no permitidas marcadas.
+
+Sin servidor no hay login, asi que esa actividad se identifica por **PC y usuario de Windows**. Si el servidor se apago en plena sesion, tambien guarda el alumno que estaba conectado.
+
+Integridad:
+- Cada entrada lleva numero de secuencia y un hash encadenado con la anterior.
+- El servidor marca las entradas editadas, los huecos y si el archivo se borro y empezo de nuevo ("registro reiniciado").
+- Esto hace visible una alteracion, pero **no la impide**. El archivo esta en la cuenta del alumno, y alguien que conozca el formato podria rehacerlo. Tampoco se detecta si el archivo se borra antes del primer envio de esa PC.
+
+El servidor guarda esa actividad en `server/offline-activity.jsonl` y `server/offline-state.json`, que no se suben a Git.
 
 La PC del servidor necesita:
 - De preferencia, IP fija en la red del laboratorio (reservala en el router).

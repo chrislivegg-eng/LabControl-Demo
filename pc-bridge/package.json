@@ -32,6 +32,7 @@
       "app/**/*",
       "agent/config.js",
       "agent/discovery.js",
+      "agent/offline-log.js",
       "package.json"
     ],
     "win": {

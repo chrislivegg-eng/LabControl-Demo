@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultPaths, loadOrCreateKeys, startDiscoveryResponder } from './discovery.js';
+import { OfflineStore } from './offline-store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const bridgeDir = path.resolve(__dirname, '..');
@@ -110,12 +111,12 @@ async function appendAudit(entry) {
   }
 }
 
-function readRequestJson(request) {
+function readRequestJson(request, maxBytes = 50_000) {
   return new Promise((resolve, reject) => {
     let body = '';
     request.on('data', chunk => {
       body += chunk;
-      if (body.length > 50_000) {
+      if (body.length > maxBytes) {
         request.destroy();
         reject(new Error('Payload demasiado grande.'));
       }
@@ -512,6 +513,48 @@ function getOnlineReports() {
     .sort((a, b) => a.pc.localeCompare(b.pc));
 }
 
+const offlineStore = new OfflineStore(__dirname);
+
+// Actividad que una PC registro mientras el servidor estaba apagado.
+async function handleOfflineLog(request, response) {
+  try {
+    const body = await readRequestJson(request, 1_000_000);
+    const agentId = String(body.agentId || '').trim().slice(0, 120);
+    const pc = String(body.pc || agentId).trim().slice(0, 120);
+    if (!agentId || !Array.isArray(body.entries)) {
+      sendJson(response, 400, { ok: false, error: 'agentId y entries son requeridos.' });
+      return;
+    }
+    if (body.entries.length > 1000) {
+      sendJson(response, 413, { ok: false, error: 'Envia como maximo 1000 entradas por lote.' });
+      return;
+    }
+    const result = offlineStore.ingest({
+      agentId,
+      pc,
+      windowsUser: String(body.windowsUser || '').slice(0, 80),
+      entries: body.entries
+    });
+    sendJson(response, 200, { ok: true, ...result });
+  } catch (error) {
+    sendJson(response, 500, { ok: false, error: error.message });
+  }
+}
+
+async function handleOfflineSummary(response) {
+  try {
+    const rules = await loadRules();
+    const summary = offlineStore.summary(entry => {
+      const app = getFriendlyAppName(entry.processName, entry.title).trim();
+      const decision = getBlockDecision({ app, windowTitle: entry.title, processName: entry.processName }, rules);
+      return { ...decision, app };
+    });
+    sendJson(response, 200, summary);
+  } catch (error) {
+    sendJson(response, 500, { ok: false, error: error.message });
+  }
+}
+
 async function handleHeartbeat(request, response) {
   try {
     const body = await readRequestJson(request);
@@ -762,6 +805,17 @@ const server = http.createServer((request, response) => {
 
   if (request.method === 'GET' && request.url === '/api/agent/config') {
     handleAgentConfig(response);
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/api/agent/offline-log') {
+    handleOfflineLog(request, response);
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/api/lab/offline') {
+    if (!requireTeacher(request, response)) return;
+    handleOfflineSummary(response);
     return;
   }
 

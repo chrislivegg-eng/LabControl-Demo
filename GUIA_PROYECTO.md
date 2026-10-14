@@ -178,6 +178,8 @@ Configuracion actual de referencia:
 }
 ```
 
+Si no hay servidor, la app del alumno no estorba ni bloquea. Guarda la actividad en la PC hasta 7 dias y la envia cuando el servidor vuelve; el panel la muestra en Reportes > Actividad sin conexion. Detalles en `pc-bridge/README.md`.
+
 Si la IP configurada no responde, la app busca el servidor en la red local por UDP 3101 y solo acepta respuestas firmadas con la llave del servidor (Ed25519). La llave privada esta en `server/discovery-private.pem`, que no se sube a Git y se debe respaldar. La llave publica se escribe sola en `discoveryPublicKey`. Detalles en `pc-bridge/README.md`.
 
 Antes de distribuir el instalador:

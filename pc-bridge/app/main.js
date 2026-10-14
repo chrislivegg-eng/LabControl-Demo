@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { loadAgentConfig } from '../agent/config.js';
 import { resolveServerUrl } from '../agent/discovery.js';
+import { OfflineLog } from '../agent/offline-log.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +17,15 @@ let networkFailures = 0;
 let serverOnline = false;
 let offlineChecks = 0;
 const OFFLINE_AFTER_CHECKS = 2;
+// Actividad registrada mientras no hay servidor; se envia cuando vuelve.
+const offlineLog = new OfflineLog(app.getPath('userData'));
+let offlineTimer = null;
+// Solo se registra cuando ya se confirmo que no hay servidor (no al arrancar).
+let offlineConfirmed = false;
+let uploadingOffline = null;
+const WINDOWS_USER = (() => {
+  try { return os.userInfo().username; } catch { return ''; }
+})();
 let locating = null;
 const AGENT_ID = process.env.LABCONTROL_AGENT_ID || os.hostname();
 const LOGIN_RETRY_MS = Number(process.env.LABCONTROL_LOGIN_RETRY_MS || 5000);
@@ -135,20 +145,61 @@ function requireLoginAgain(message) {
 function setServerOnline(online) {
   if (online) {
     offlineChecks = 0;
+    offlineConfirmed = false;
     if (!serverOnline) {
       serverOnline = true;
       tray?.setToolTip('LabControl Agent - conectado');
     }
+    uploadOfflineLog();
     return;
   }
   offlineChecks += 1;
   if (serverOnline && offlineChecks < OFFLINE_AFTER_CHECKS) return;
   serverOnline = false;
-  tray?.setToolTip('LabControl Agent - sin servidor (la PC funciona normal)');
+  offlineConfirmed = true;
+  tray?.setToolTip('LabControl Agent - sin servidor: registrando actividad');
   if (!activeSession && mainWindow?.isVisible()) {
     mainWindow.setAlwaysOnTop(false);
     mainWindow.hide();
   }
+}
+
+// Envia al servidor lo registrado sin conexion (una sola subida a la vez).
+function uploadOfflineLog() {
+  if (uploadingOffline || !offlineLog.pendingCount) return;
+  uploadingOffline = offlineLog.flush(entries => fetchJson('/api/agent/offline-log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentId: AGENT_ID, pc: os.hostname(), windowsUser: WINDOWS_USER, entries })
+  })).then(() => {
+    mainWindow?.webContents.send('agent-status', 'Actividad sin conexión enviada al servidor.');
+  }).catch(error => {
+    mainWindow?.webContents.send('agent-status', `No se pudo enviar la actividad sin conexión: ${error.message}`);
+  }).finally(() => {
+    uploadingOffline = null;
+  });
+}
+
+// Mientras no hay servidor se registra la ventana activa (no se bloquea nada).
+async function offlineTick() {
+  if (!offlineConfirmed) offlineLog.closeCurrent();
+  if (serverOnline || !offlineConfirmed) return;
+  try {
+    const activeWindow = await getActiveWindow();
+    offlineLog.record({
+      processName: activeWindow.processName,
+      title: activeWindow.app,
+      windowsUser: WINDOWS_USER,
+      student: activeSession?.username || ''
+    });
+  } catch {
+    // Si no se pudo leer la ventana, se intenta en el siguiente ciclo.
+  }
+}
+
+function startOfflineRecorder() {
+  if (offlineTimer) return;
+  offlineTimer = setInterval(offlineTick, reportIntervalMs);
 }
 
 async function reportLoginPending() {
@@ -319,6 +370,7 @@ async function reportLoop() {
       })
     });
 
+    setServerOnline(true);
     await applyBlock(activeWindow, result);
 
     mainWindow?.webContents.send('agent-status', `Reportando: ${activeWindow.processName || activeWindow.app} · bloqueado=${result.blocked}`);
@@ -327,6 +379,7 @@ async function reportLoop() {
       requireLoginAgain('La sesión terminó. Vuelve a iniciar sesión.');
       return;
     }
+    if (!error.status) setServerOnline(false);
     mainWindow?.webContents.send('agent-status', error.message);
   }
   if (activeSession) reportTimer = setTimeout(reportLoop, reportIntervalMs);
@@ -386,6 +439,7 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   createWindow();
   createTray();
+  startOfflineRecorder();
   locateServer().catch(() => {}).finally(() => startPendingLoop());
 });
 
@@ -400,6 +454,7 @@ app.on('window-all-closed', event => {
 
 app.on('before-quit', () => {
   app.isQuiting = true;
+  offlineLog.closeCurrent();
   if (reportTimer) clearTimeout(reportTimer);
   if (pendingTimer) clearInterval(pendingTimer);
 });

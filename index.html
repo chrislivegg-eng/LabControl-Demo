@@ -342,6 +342,24 @@
                 </div>
               </div>
             </article>
+
+            <!-- Actividad registrada por las PCs mientras el servidor estaba apagado -->
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden mt-6 hidden" id="offline-report">
+              <div class="h-2.5 bg-gradient-to-r from-gray-700 to-gray-500 w-full"></div>
+              <div class="p-8 sm:p-10">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-6 border-b border-gray-100 mb-6">
+                  <div>
+                    <span class="text-xs font-bold text-gray-500 tracking-widest uppercase block mb-1">Últimos 7 días</span>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight">Actividad sin conexión</h3>
+                    <p class="text-sm text-gray-500 mt-1">Lo que registraron las PCs mientras el servidor estaba apagado. Sin servidor no hay inicio de sesión, así que se identifica por PC y usuario de Windows.</p>
+                  </div>
+                  <button type="button" id="offline-refresh" class="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shrink-0">Actualizar</button>
+                </div>
+                <div id="offline-report-body" class="space-y-6 text-sm text-gray-700">
+                  <p class="text-gray-400">Sin actividad sin conexión.</p>
+                </div>
+              </div>
+            </article>
           </section>
 
           <!-- Sección de configuración -->
