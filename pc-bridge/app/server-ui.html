@@ -7,14 +7,15 @@
     <style>
       :root { color-scheme: light; font-family: "Segoe UI", Arial, sans-serif; }
       * { box-sizing: border-box; }
+      html, body { height: 100%; }
       body {
         margin: 0;
-        min-height: 100vh;
+        overflow: hidden;
         color: #1f1b18;
         background:
           radial-gradient(circle at top left, rgba(249, 115, 22, .22), transparent 34%),
           linear-gradient(145deg, #fff7f2 0%, #fff 60%, #fee9dc 100%);
-        padding: 22px;
+        padding: 20px;
       }
       .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
       .brand-mark {

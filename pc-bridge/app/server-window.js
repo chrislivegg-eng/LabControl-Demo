@@ -58,7 +58,7 @@ async function pollStatus() {
 function createWindow() {
   win = new BrowserWindow({
     width: 540,
-    height: 660,
+    height: 736,
     resizable: false,
     maximizable: false,
     fullscreenable: false,
