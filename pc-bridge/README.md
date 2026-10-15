@@ -174,6 +174,8 @@ El servidor guarda cuanto tiempo usa cada alumno cada aplicacion, por dia, en `s
 2. En una PC Windows, doble clic en `Crear instalador Windows.cmd`.
 3. El resultado queda en `dist/LabControl-Agent-<version>-x64.exe`.
 
+Si falla con "Cannot create symbolic link", ejecuta `Crear instalador Windows.cmd` como administrador (o activa el Modo de programador de Windows).
+
 El instalador:
 - Pide permisos de administrador.
 - Instala para todos los usuarios de la PC.

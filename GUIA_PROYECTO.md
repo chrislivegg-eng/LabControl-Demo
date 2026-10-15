@@ -335,7 +335,14 @@ Se han validado en el servidor local:
 
 No se pudo compilar el `.exe` desde el entorno de desarrollo en la nube; se compila en una PC Windows con `Crear instalador Windows.cmd`.
 
-La validacion del servidor no sustituye la prueba del agente empaquetado en Windows real.
+Prueba en Windows real (14 de octubre de 2026, PC de Christian, Windows 11, servidor y agente en la misma PC, panel desde un telefono en la misma red):
+
+- `Iniciar servidor.cmd` arranco en el puerto 80 y creo la llave de descubrimiento.
+- `Crear instalador Windows.cmd` genero `LabControl-Agent-1.0.0-x64.exe` (ejecutado como administrador; sin permisos falla al extraer winCodeSign).
+- El agente instalado encontro el servidor con la busqueda automatica (la configuracion apuntaba a `labcontrol`).
+- Login de alumno, reporte en el panel del telefono, alerta por app no permitida, excepciones, quitar reglas, reportes y bloqueo: funcionaron.
+
+Falta la prueba piloto en el laboratorio con varias PCs (`CHECKLIST-INSTALACION.md`).
 
 ## 13. Asistente de ayuda
 
