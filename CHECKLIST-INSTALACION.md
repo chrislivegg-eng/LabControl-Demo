@@ -55,6 +55,8 @@ Panel en **Solo alertas** durante toda esta seccion.
 - [ ] Con el servidor apagado, usar la PC unos minutos (Word, YouTube). El icono de la bandeja dice "sin servidor: registrando actividad" y no se cierra nada.
 - [ ] Volver a prender el servidor: la app vuelve a pedir login.
 - [ ] En el panel, **Reportes > Actividad sin conexion** muestra esa PC, su usuario de Windows y las apps usadas, con YouTube como No permitido.
+- [ ] Despues de unos minutos de uso, **Reportes** muestra a los alumnos con su tiempo por aplicacion, y la grafica de Inicio se llena.
+- [ ] Quitar una regla con su ✕ en Configuracion y agregar una excepcion (por ejemplo canva.com): el cambio se aplica en la PC del alumno.
 - [ ] Sin internet: desconectar el cable de internet del router (dejando el router prendido). El panel debe verse completo, con graficas, y las PCs deben seguir reportando.
 
 ## D. Prueba de bloqueo (una sola PC)

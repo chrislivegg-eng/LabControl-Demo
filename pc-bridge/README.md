@@ -158,6 +158,16 @@ Las contrasenas y los codigos se guardan con scrypt y salt, nunca en texto plano
 
 El grupo de cada alumno aparece debajo de su nombre, junto a la matricula, en Inicio, Sesiones y Usuarios. Sale de la columna "grupo" del Excel; no hay que crearlo aparte. En **Usuarios**, el buscador encuentra por nombre, matricula o grupo.
 
+### Historial y reportes
+
+El servidor guarda cuanto tiempo usa cada alumno cada aplicacion, por dia, en `server/history/AAAA-MM-DD.json` (fuera de Git; se conservan 120 dias).
+
+- Solo se guarda el nombre de la app y si estaba permitida. De las paginas prohibidas tambien el sitio ("Google Chrome · youtube.com"). **No** se guardan titulos de ventanas, textos ni teclas.
+- En el panel, **Reportes** muestra el uso por periodo (hoy, ayer, 7 o 30 dias), con detalle por alumno y boton Imprimir.
+- La grafica **Tiempo por aplicacion** de Inicio usa el mismo historial; en rojo, lo no permitido.
+- Si una PC deja de reportar, el hueco no se cuenta como uso (maximo 15 s entre reportes).
+- La actividad registrada sin servidor sigue en su propio reporte, "Actividad sin conexion".
+
 ## 3. Instalador para las PCs de alumnos
 
 1. Revisa `config/labcontrol-config.json`. Por defecto apunta a `http://labcontrol`. Si la PC servidor tiene otro nombre, pon su nombre o su IP fija. Comprueba que tenga `discoveryPublicKey` (ver Busqueda automatica).

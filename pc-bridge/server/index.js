@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import { access, appendFile, copyFile, readFile, writeFile } from 'node:fs/promises';
+import { access, appendFile, copyFile, readFile, stat, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import http from 'node:http';
 import os from 'node:os';
@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultPaths, loadOrCreateKeys, startDiscoveryResponder } from './discovery.js';
 import { OfflineStore } from './offline-store.js';
+import { HistoryStore, dayKey } from './history-store.js';
 import {
   clearActivation, issueActivation, publicStudent, validateNewPassword,
   verifyActivation, verifyPassword, hashPassword, writeUsersFile
@@ -155,6 +156,20 @@ async function loadRules() {
 
 async function saveRules(rules) {
   await writeFile(rulesPath, `${JSON.stringify(normalizeRules(rules), null, 2)}\n`, 'utf8');
+}
+
+// Cuentas en memoria mientras users.json no cambie (los reportes llegan cada 5 s).
+let usersCache = { mtimeMs: -1, users: [] };
+async function loadUsersCached() {
+  try {
+    const { mtimeMs } = await stat(usersPath);
+    if (mtimeMs === usersCache.mtimeMs) return usersCache.users;
+    const users = await loadUsers();
+    usersCache = { mtimeMs, users };
+    return users;
+  } catch {
+    return loadUsers();
+  }
 }
 
 async function loadUsers() {
@@ -637,6 +652,27 @@ function getOnlineReports() {
 }
 
 const offlineStore = new OfflineStore(__dirname);
+const historyStore = new HistoryStore(__dirname);
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    historyStore.flush();
+    process.exit(0);
+  });
+}
+process.on('exit', () => historyStore.flush());
+
+// Historial por rango: /api/lab/history?from=AAAA-MM-DD&to=AAAA-MM-DD (por defecto hoy).
+function handleHistory(request, response) {
+  try {
+    const params = new URL(request.url, 'http://localhost').searchParams;
+    const today = dayKey();
+    const from = params.get('from') || today;
+    const to = params.get('to') || from;
+    sendJson(response, 200, { ok: true, ...historyStore.summary(from, to) });
+  } catch (error) {
+    sendJson(response, 400, { ok: false, error: error.message });
+  }
+}
 
 // Actividad que una PC registro mientras el servidor estaba apagado.
 async function handleOfflineLog(request, response) {
@@ -704,6 +740,21 @@ async function handleHeartbeat(request, response) {
       sendJson(response, 401, { error: 'La PC no tiene una sesión válida de LabControl.' });
       return;
     }
+
+    // Historial: suma el tiempo de esta PC a la app que esta usando el alumno.
+    const account = (await loadUsersCached()).find(user => user.username === session.username);
+    const site = blockDecision.blockType === 'page' ? String(blockDecision.matchedRule || '').split(':')[1] || '' : '';
+    historyStore.record({
+      agentId,
+      username: session.username,
+      name: session.displayName,
+      matricula: account?.matricula || String(session.username).toUpperCase(),
+      group: account?.group || '',
+      pc,
+      app,
+      blocked,
+      site
+    });
 
     agentReports.set(agentId, {
       agentId,
@@ -957,6 +1008,12 @@ const server = http.createServer((request, response) => {
     loadUsers()
       .then(users => sendJson(response, 200, buildStatusPayload(users)))
       .catch(error => sendJson(response, 500, { ok: false, error: error.message }));
+    return;
+  }
+
+  if (request.method === 'GET' && request.url.split('?')[0] === '/api/lab/history') {
+    if (!requireTeacher(request, response)) return;
+    handleHistory(request, response);
     return;
   }
 

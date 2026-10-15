@@ -236,9 +236,10 @@
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col justify-between">
                   <div class="flex justify-between items-center mb-6">
                     <h2 class="text-lg font-black text-gray-900">Tiempo por aplicación</h2>
-                    <select class="bg-gray-50 border border-gray-200 text-sm font-semibold rounded-xl px-3 py-2 text-gray-600 focus:outline-none focus:border-orange-500 transition">
-                      <option>Hoy</option>
-                      <option>Esta semana</option>
+                    <select id="usage-period" aria-label="Periodo de la gráfica" class="bg-gray-50 border border-gray-200 text-sm font-semibold rounded-xl px-3 py-2 text-gray-600 focus:outline-none focus:border-orange-500 transition">
+                      <option value="0">Hoy</option>
+                      <option value="7">Últimos 7 días</option>
+                      <option value="30">Últimos 30 días</option>
                     </select>
                   </div>
                   <div class="relative h-64 w-full" id="app-bars">
@@ -373,6 +374,39 @@
                     La información mostrada es de ejemplo. El reporte real solo incluiría datos permitidos por la escuela.
                   </p>
                 </div>
+              </div>
+            </article>
+
+            <!-- Reporte real: tiempo por alumno y app (historial del servidor) -->
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden history-report" id="history-report" hidden>
+              <div class="h-2.5 bg-gradient-to-r from-orange-600 to-orange-400 w-full"></div>
+              <div class="p-8 sm:p-10">
+                <div class="history-head">
+                  <div>
+                    <span class="text-xs font-bold text-orange-600 tracking-widest uppercase block mb-1" id="history-range">Hoy</span>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight" id="history-title">Uso del laboratorio</h3>
+                  </div>
+                  <div class="history-controls">
+                    <label class="sr-only" for="history-period">Periodo</label>
+                    <select id="history-period">
+                      <option value="0">Hoy</option>
+                      <option value="1">Ayer</option>
+                      <option value="7">Últimos 7 días</option>
+                      <option value="30">Últimos 30 días</option>
+                    </select>
+                    <label class="sr-only" for="history-student">Alumno</label>
+                    <select id="history-student"><option value="">Todos los alumnos</option></select>
+                    <button type="button" id="history-print">Imprimir</button>
+                  </div>
+                </div>
+                <div class="history-metrics" id="history-metrics"></div>
+                <div class="table-wrap overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead id="history-head"></thead>
+                    <tbody class="divide-y divide-gray-50 text-sm text-gray-700" id="history-body"></tbody>
+                  </table>
+                </div>
+                <p class="history-note">Solo se guarda el nombre de la app y si estaba permitida; de las páginas prohibidas, el sitio. No se guardan títulos de ventanas, textos ni teclas.</p>
               </div>
             </article>
 

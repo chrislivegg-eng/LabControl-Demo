@@ -15,3 +15,4 @@ pc-bridge/server/classes.json
 pc-bridge/tools/*.xlsx
 **/codigos-activacion-*.html
 *.xlsx
+pc-bridge/server/history/

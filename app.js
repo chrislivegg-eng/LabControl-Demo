@@ -232,7 +232,7 @@ async function refreshAgentData() {
     if (Array.isArray(payload.activities)) {
       renderLabData(payload.activities, payload.summary || {});
       if (rosterStudents.length) renderRoster();
-      updateUsageChart(payload.activities);
+      if (!AGENT_API_URL) updateUsageChart(payload.activities);
       notifyNewAlerts(payload.activities);
     }
     if (agentStatus) {
@@ -615,6 +615,150 @@ async function loadOfflineReport() {
 
 document.querySelector('#offline-refresh')?.addEventListener('click', loadOfflineReport);
 
+// --- Historial: reporte por alumno y grafica de tiempo por aplicacion ---
+const historyReport = document.querySelector('#history-report');
+const historyPeriod = document.querySelector('#history-period');
+const historyStudent = document.querySelector('#history-student');
+const historyMetrics = document.querySelector('#history-metrics');
+const historyHead = document.querySelector('#history-head');
+const historyBody = document.querySelector('#history-body');
+const historyRange = document.querySelector('#history-range');
+const historyTitle = document.querySelector('#history-title');
+const usagePeriod = document.querySelector('#usage-period');
+let historyData = null;
+
+function localDay(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// 0 = hoy, 1 = ayer, 7 y 30 = ultimos N dias incluyendo hoy.
+function periodRange(value) {
+  const days = Number(value) || 0;
+  const today = new Date();
+  if (days === 1) {
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return { from: localDay(yesterday), to: localDay(yesterday) };
+  }
+  const start = new Date(today);
+  if (days > 1) start.setDate(today.getDate() - (days - 1));
+  return { from: localDay(start), to: localDay(today) };
+}
+
+function periodLabel(range) {
+  const fmt = day => new Date(`${day}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+  return range.from === range.to ? fmt(range.from) : `${fmt(range.from)} a ${fmt(range.to)}`;
+}
+
+function formatTime(seconds) {
+  if (seconds < 60) return seconds > 0 ? 'menos de 1 min' : '0 min';
+  return formatDuration(seconds);
+}
+
+async function fetchHistory(range) {
+  const response = await teacherFetch(`/api/lab/history?from=${range.from}&to=${range.to}`);
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'No se pudo leer el historial.');
+  return payload;
+}
+
+function metric(value, label, tone = '') {
+  return `<div class="history-metric ${tone}"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>`;
+}
+
+function renderHistory() {
+  if (!historyData || !historyBody) return;
+  const selected = historyData.students.find(item => item.username === historyStudent?.value);
+
+  if (selected) {
+    historyTitle.textContent = selected.name;
+    historyMetrics.innerHTML = [
+      metric(formatTime(selected.seconds), 'Tiempo total'),
+      metric(formatTime(selected.blockedSeconds), 'No permitido', selected.blockedSeconds ? 'warn' : ''),
+      metric(`${selected.matricula} · ${selected.group || 'Sin grupo'}`, `PC: ${selected.pcs.join(', ') || '—'}`)
+    ].join('');
+    historyHead.innerHTML = '<tr class="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider"><th class="pb-3 px-2">Aplicación</th><th class="pb-3 px-2">Tiempo</th><th class="pb-3 px-2">Del total</th><th class="pb-3 px-2">Estado</th></tr>';
+    historyBody.innerHTML = selected.apps.map(app => {
+      const percent = selected.seconds ? Math.round(app.seconds / selected.seconds * 100) : 0;
+      return `<tr class="${app.blocked ? 'bg-orange-50/50' : ''}">
+        <td class="py-3 px-2 font-medium text-gray-900">${escapeHtml(app.name)}</td>
+        <td class="py-3 px-2 tabular-nums">${escapeHtml(formatTime(app.seconds))}</td>
+        <td class="py-3 px-2"><span class="history-bar"><span style="width:${percent}%"></span></span><span class="history-percent">${percent}%</span></td>
+        <td class="py-3 px-2">${app.blocked ? '<strong class="text-orange-700">No permitido</strong>' : 'Permitido'}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="4" class="py-6 px-2 text-gray-400">Sin actividad en este periodo.</td></tr>';
+    return;
+  }
+
+  const total = historyData.students.reduce((sum, item) => sum + item.seconds, 0);
+  const blocked = historyData.students.reduce((sum, item) => sum + item.blockedSeconds, 0);
+  historyTitle.textContent = 'Uso del laboratorio';
+  historyMetrics.innerHTML = [
+    metric(String(historyData.students.length), historyData.students.length === 1 ? 'Alumno con actividad' : 'Alumnos con actividad'),
+    metric(formatTime(total), 'Tiempo total'),
+    metric(formatTime(blocked), 'No permitido', blocked ? 'warn' : '')
+  ].join('');
+  historyHead.innerHTML = '<tr class="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider"><th class="pb-3 px-2">Alumno</th><th class="pb-3 px-2">Tiempo</th><th class="pb-3 px-2">No permitido</th><th class="pb-3 px-2">Más usado</th></tr>';
+  historyBody.innerHTML = historyData.students.map(item => `
+    <tr class="history-row" data-history-student="${escapeHtml(item.username)}" tabindex="0" title="Ver el reporte de ${escapeHtml(item.name)}">
+      <td class="py-3 px-2"><span class="font-medium text-gray-900">${escapeHtml(item.name)}</span><span class="student-id">${escapeHtml([item.matricula, item.group].filter(Boolean).join(' · '))}</span></td>
+      <td class="py-3 px-2 tabular-nums">${escapeHtml(formatTime(item.seconds))}</td>
+      <td class="py-3 px-2 tabular-nums ${item.blockedSeconds ? 'text-orange-700 font-semibold' : 'text-gray-400'}">${escapeHtml(formatTime(item.blockedSeconds))}</td>
+      <td class="py-3 px-2 text-gray-600">${escapeHtml(item.apps[0]?.name || '—')}</td>
+    </tr>`).join('') || '<tr><td colspan="4" class="py-6 px-2 text-gray-400">Sin actividad en este periodo. Aparece en cuanto los alumnos usan las PCs con sesión iniciada.</td></tr>';
+}
+
+async function loadHistoryReport() {
+  if (!AGENT_API_URL || !teacherToken || !historyReport) return;
+  historyReport.hidden = false;
+  const range = periodRange(historyPeriod?.value);
+  if (historyRange) historyRange.textContent = periodLabel(range);
+  try {
+    historyData = await fetchHistory(range);
+    const current = historyStudent.value;
+    historyStudent.innerHTML = '<option value="">Todos los alumnos</option>' + historyData.students
+      .slice().sort((a, b) => a.name.localeCompare(b.name, 'es'))
+      .map(item => `<option value="${escapeHtml(item.username)}">${escapeHtml(item.name)} (${escapeHtml(item.matricula)})</option>`).join('');
+    historyStudent.value = historyData.students.some(item => item.username === current) ? current : '';
+    renderHistory();
+  } catch (error) {
+    if (historyBody) historyBody.innerHTML = `<tr><td class="py-6 px-2 text-red-600">${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+historyPeriod?.addEventListener('change', loadHistoryReport);
+historyStudent?.addEventListener('change', renderHistory);
+document.querySelector('#history-print')?.addEventListener('click', () => window.print());
+historyBody?.addEventListener('click', event => {
+  const row = event.target.closest('[data-history-student]');
+  if (!row) return;
+  historyStudent.value = row.dataset.historyStudent;
+  renderHistory();
+});
+historyBody?.addEventListener('keydown', event => {
+  if (event.key !== 'Enter') return;
+  const row = event.target.closest('[data-history-student]');
+  if (!row) return;
+  historyStudent.value = row.dataset.historyStudent;
+  renderHistory();
+});
+
+// Grafica "Tiempo por aplicacion" con datos reales del historial.
+async function loadUsageChart() {
+  if (!AGENT_API_URL || !teacherToken || !usageChart) return;
+  try {
+    const data = await fetchHistory(periodRange(usagePeriod?.value));
+    const top = data.apps.slice(0, 8);
+    usageChart.data.labels = top.length ? top.map(app => app.name) : ['Sin actividad todavía'];
+    usageChart.data.datasets[0].data = top.length ? top.map(app => Math.round(app.seconds / 6) / 10) : [0];
+    usageChart.data.datasets[0].backgroundColor = top.length ? top.map(app => (app.blocked ? '#dc2626' : '#f97316')) : '#f97316';
+    usageChart.update();
+  } catch { /* la grafica conserva sus datos anteriores */ }
+}
+
+usagePeriod?.addEventListener('change', loadUsageChart);
+if (AGENT_API_URL) window.setInterval(loadUsageChart, 60000);
+
 // --- Alumnos registrados (con el servidor del laboratorio) ---
 const roster = document.querySelector('#roster');
 const rosterBody = document.querySelector('#roster-body');
@@ -731,7 +875,7 @@ rosterCode?.addEventListener('click', event => {
 });
 
 function openView(name) {
-  if (name === 'report') loadOfflineReport();
+  if (name === 'report') { loadHistoryReport(); loadOfflineReport(); }
   if (name === 'students') loadRoster();
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   document.querySelector(`#${name}-page`).classList.add('active');
@@ -768,6 +912,7 @@ document.querySelector('#login-form').addEventListener('submit', async event => 
       refreshAgentData();
       loadRulesPanel();
       loadRoster();
+      loadUsageChart();
     } else {
       activeTeacher = { displayName: usernameInput?.value || 'Docente Demo', role: 'teacher' };
     }
@@ -792,6 +937,7 @@ function endTeacherSession(message) {
   activeTeacher = null;
   setTeacherToken('');
   rosterStudents = [];
+  historyData = null;
   if (rosterCode) { rosterCode.hidden = true; rosterCode.innerHTML = ''; }
   document.querySelector('#dashboard-view').classList.add('hidden');
   document.querySelector('#login-view').classList.remove('hidden');
@@ -925,7 +1071,7 @@ const helpTopics = [
     id: 'report',
     keys: ['reporte', 'reportes', 'imprimir', 'impresion', 'imprimo', 'pdf', 'informe'],
     view: 'report',
-    answer: () => `En **Reportes**:\n1. Elige al estudiante en el selector de arriba.\n2. Revisa su **sesión total** y las aplicaciones que más usó.\n3. Pulsa **Imprimir** para imprimirlo o guardarlo como PDF.\n\nAbajo está **Actividad sin conexión**, con lo que registraron las PCs mientras el servidor estaba apagado.`
+    answer: () => `En **Reportes**:\n1. Elige el periodo: hoy, ayer, últimos 7 o 30 días.\n2. Verás a todos los alumnos con su tiempo total y lo no permitido. Pulsa un alumno (o elígelo en la lista) para ver cuánto usó cada aplicación.\n3. Pulsa **Imprimir** para imprimirlo o guardarlo como PDF.\n\nAbajo está **Actividad sin conexión**, con lo que registraron las PCs mientras el servidor estaba apagado.`
   },
   {
     id: 'offline',
