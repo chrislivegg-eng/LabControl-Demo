@@ -209,6 +209,11 @@ async function loginAgent() {
     });
     const payload = await response.json();
 
+    if (response.ok && payload.ok && payload.mustSetPassword) {
+      errorMessage = 'Esa cuenta usa un código de activación. Actívala primero en la app de LabControl.';
+      continue;
+    }
+
     if (response.ok && payload.ok) {
       activeSession = payload;
       return payload;

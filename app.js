@@ -44,7 +44,7 @@ function renderActivityRows(list) {
 
     return `
       <tr class="hover:bg-gray-50/50 transition">
-          <td class="py-3.5 px-2 font-medium text-gray-900">${escapeHtml(item.name)}</td>
+          <td class="py-3.5 px-2 font-medium text-gray-900">${escapeHtml(item.name)}${item.matricula ? `<span class="student-id">${escapeHtml([item.matricula, item.group].filter(Boolean).join(' · '))}</span>` : ''}</td>
           <td class="py-3.5 px-2 text-gray-500">${escapeHtml(item.pc)}</td>
           <td class="py-3.5 px-2 text-gray-800">
               <span class="activity-app">${escapeHtml(item.app)}</span>
@@ -77,7 +77,7 @@ function renderStudentsList(list) {
   const studentsList = document.querySelector('#students-list');
   if (!studentsList) return;
   studentsList.innerHTML = list.map(([name, detail]) => {
-  const initials = name.split(' ').map(n => n[0]).join('');
+  const initials = escapeHtml(name.split(' ').map(n => n[0]).join('').slice(0, 2));
   const isAlert = detail.includes('Alerta');
   const badgeClass = isAlert 
     ? 'bg-red-50 text-red-600 border-red-100' 
@@ -89,8 +89,8 @@ function renderStudentsList(list) {
         ${initials}
       </div>
       <div class="min-w-0 flex-1">
-        <h4 class="text-sm font-bold text-gray-900 truncate">${name}</h4>
-        <p class="text-xs text-gray-500 mt-0.5 mb-3">${detail.split('·')[0].trim()}</p>
+        <h4 class="text-sm font-bold text-gray-900 truncate">${escapeHtml(name)}</h4>
+        <p class="text-xs text-gray-500 mt-0.5 mb-3">${escapeHtml(detail.split('·')[0].trim())}</p>
         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeClass}">
           ${detail.split('·')[1] || 'Sesión activa'}
         </span>
@@ -218,6 +218,7 @@ async function refreshAgentData() {
     if (!response.ok) throw new Error(payload.error || 'No fue posible leer los equipos.');
     if (Array.isArray(payload.activities)) {
       renderLabData(payload.activities, payload.summary || {});
+      if (rosterStudents.length) renderRoster();
       updateUsageChart(payload.activities);
       notifyNewAlerts(payload.activities);
     }
@@ -575,8 +576,164 @@ async function loadOfflineReport() {
 
 document.querySelector('#offline-refresh')?.addEventListener('click', loadOfflineReport);
 
+// --- Grupos y alumnos registrados (con el servidor del laboratorio) ---
+const CLASSES_API_URL = AGENT_API_URL ? '/api/lab/classes' : '';
+const groupFilterLabel = document.querySelector('.group-filter');
+const groupFilter = document.querySelector('#group-filter');
+const roster = document.querySelector('#roster');
+const rosterBody = document.querySelector('#roster-body');
+const rosterSearch = document.querySelector('#roster-search');
+const rosterCount = document.querySelector('#roster-count');
+const rosterCode = document.querySelector('#roster-code');
+let rosterStudents = [];
+
+const ACCOUNT_LABELS = {
+  activo: ['Activa', 'bg-emerald-50 text-emerald-600 border-emerald-100'],
+  pendiente: ['Sin activar', 'bg-amber-50 text-amber-700 border-amber-100'],
+  'codigo vencido': ['Código vencido', 'bg-red-50 text-red-600 border-red-100']
+};
+
+function plainText(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function renderGroupOptions({ classes = [], activeClassId = '' }) {
+  if (!groupFilter) return;
+  groupFilter.innerHTML = '<option value="">Todos los grupos</option>' + classes.map(group =>
+    `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)} (${group.students})</option>`).join('');
+  groupFilter.value = activeClassId;
+  if (groupFilterLabel) groupFilterLabel.hidden = !classes.length;
+}
+
+async function loadGroups() {
+  if (!CLASSES_API_URL || !teacherToken) return;
+  try {
+    const response = await teacherFetch(CLASSES_API_URL);
+    const payload = await response.json();
+    if (response.ok) renderGroupOptions(payload);
+  } catch { /* el selector se queda en "Todos los grupos" */ }
+}
+
+groupFilter?.addEventListener('change', async () => {
+  try {
+    const response = await teacherFetch(`${CLASSES_API_URL}/active`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classId: groupFilter.value })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No se pudo cambiar el grupo.');
+    renderGroupOptions(payload);
+    refreshAgentData();
+    renderRoster();
+    if (document.querySelector('#report-page')?.classList.contains('active')) loadOfflineReport();
+  } catch (error) {
+    showLabToast({ title: 'Grupo sin cambiar', message: error.message, type: 'warning' });
+  }
+});
+
+function renderRoster() {
+  if (!rosterBody) return;
+  const query = plainText(rosterSearch?.value);
+  const group = groupFilter?.value || '';
+  const live = new Map(activities.filter(item => item.matricula).map(item => [item.matricula, item]));
+  const list = rosterStudents.filter(student => (!group || student.group === group)
+    && (!query || plainText(`${student.name} ${student.matricula}`).includes(query)));
+
+  if (rosterCount) {
+    rosterCount.textContent = `${list.length} ${list.length === 1 ? 'alumno' : 'alumnos'}${group ? ` · ${group}` : ''}`;
+  }
+  if (!list.length) {
+    rosterBody.innerHTML = `<tr><td colspan="5" class="py-6 px-2 text-gray-400">${rosterStudents.length ? 'Ningún alumno coincide con la búsqueda.' : 'Todavía no hay alumnos. El coordinador los importa con npm run alumnos.'}</td></tr>`;
+    return;
+  }
+  rosterBody.innerHTML = list.map(student => {
+    const [label, chip] = ACCOUNT_LABELS[student.status] || ACCOUNT_LABELS.activo;
+    const now = live.get(student.matricula);
+    return `
+      <tr>
+        <td class="py-3 px-2"><span class="font-medium text-gray-900">${escapeHtml(student.name)}</span><span class="student-id">${escapeHtml(student.matricula)}</span></td>
+        <td class="py-3 px-2 text-gray-600">${escapeHtml(student.group || '—')}</td>
+        <td class="py-3 px-2 text-gray-600">${now ? `${escapeHtml(now.pc)} · ${escapeHtml(now.app)}` : '<span class="text-gray-400">Sin conexión</span>'}</td>
+        <td class="py-3 px-2"><span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${chip}">${label}</span></td>
+        <td class="py-3 px-2 text-right"><button type="button" class="roster-reset" data-reset="${escapeHtml(student.username)}" data-name="${escapeHtml(student.name)}">Restablecer</button></td>
+      </tr>`;
+  }).join('');
+}
+
+async function loadRoster() {
+  if (!AGENT_API_URL || !teacherToken || !roster) return;
+  roster.hidden = false;
+  const demoCards = document.querySelector('#students-list')?.closest('article');
+  if (demoCards) demoCards.hidden = true;
+  try {
+    const response = await teacherFetch('/api/lab/students');
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No se pudo leer la lista de alumnos.');
+    rosterStudents = payload.students || [];
+    renderGroupOptions(payload);
+    renderRoster();
+  } catch (error) {
+    if (rosterBody) rosterBody.innerHTML = `<tr><td colspan="5" class="py-6 px-2 text-red-600">${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+rosterSearch?.addEventListener('input', renderRoster);
+
+// Restablecer: el primer clic pide confirmar; el segundo genera el codigo nuevo.
+rosterBody?.addEventListener('click', async event => {
+  const button = event.target.closest('[data-reset]');
+  if (!button) return;
+  if (button.dataset.confirm !== 'yes') {
+    button.dataset.confirm = 'yes';
+    button.textContent = '¿Confirmar?';
+    button.classList.add('confirming');
+    window.setTimeout(() => {
+      if (!button.isConnected) return;
+      button.dataset.confirm = '';
+      button.textContent = 'Restablecer';
+      button.classList.remove('confirming');
+    }, 4000);
+    return;
+  }
+  button.disabled = true;
+  try {
+    const response = await teacherFetch('/api/lab/students/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: button.dataset.reset })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No se pudo restablecer.');
+    const expires = new Date(payload.expiresAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+    rosterCode.hidden = false;
+    rosterCode.innerHTML = `
+      <p>Código nuevo para <strong>${escapeHtml(payload.student.name)}</strong> (${escapeHtml(payload.student.matricula)}):</p>
+      <p class="roster-code-value"><span id="roster-code-text">${escapeHtml(payload.code)}</span><button type="button" id="roster-code-copy">Copiar</button></p>
+      <p class="roster-code-note">Entrégaselo en persona. Sirve una sola vez y vence el ${escapeHtml(expires)}. Su contraseña anterior ya no funciona.</p>`;
+    await loadRoster();
+  } catch (error) {
+    showLabToast({ title: 'No se restableció', message: error.message, type: 'warning' });
+    button.disabled = false;
+  }
+});
+
+rosterCode?.addEventListener('click', event => {
+  if (event.target.id !== 'roster-code-copy') return;
+  const text = document.querySelector('#roster-code-text')?.textContent || '';
+  navigator.clipboard?.writeText(text).then(() => {
+    event.target.textContent = 'Copiado';
+  }).catch(() => {
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector('#roster-code-text'));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+  });
+});
+
 function openView(name) {
   if (name === 'report') loadOfflineReport();
+  if (name === 'students') loadRoster();
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   document.querySelector(`#${name}-page`).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === name));
@@ -611,6 +768,8 @@ document.querySelector('#login-form').addEventListener('submit', async event => 
       if (passwordInput) passwordInput.value = '';
       refreshAgentData();
       loadRulesPanel();
+      loadGroups();
+      loadRoster();
     } else {
       activeTeacher = { displayName: usernameInput?.value || 'Docente Demo', role: 'teacher' };
     }
@@ -634,6 +793,9 @@ document.querySelector('#login-form').addEventListener('submit', async event => 
 function endTeacherSession(message) {
   activeTeacher = null;
   setTeacherToken('');
+  rosterStudents = [];
+  if (rosterCode) { rosterCode.hidden = true; rosterCode.innerHTML = ''; }
+  if (groupFilterLabel) groupFilterLabel.hidden = true;
   document.querySelector('#dashboard-view').classList.add('hidden');
   document.querySelector('#login-view').classList.remove('hidden');
   const loginMessage = document.querySelector('#login-message');
@@ -731,7 +893,7 @@ const helpTopics = [
   {
     id: 'logout',
     keys: ['cerrar sesion', 'cierro sesion', 'cierro', 'cerrar', 'salgo', 'inicio sesion', 'inicio de sesion', 'salir', 'iniciar sesion', 'login', 'contrasena', 'entrar'],
-    answer: () => `**Iniciar y cerrar sesión**\nPara entrar al panel usa tu **usuario y contraseña de maestro**. Si no los tienes o los olvidaste, pídeselos al coordinador del laboratorio.\nPara salir, pulsa **Cerrar sesión** en el menú lateral. Por seguridad, si recargas la página tendrás que entrar de nuevo.`
+    answer: () => `**Iniciar y cerrar sesión**\nPara entrar al panel usa tu **usuario y contraseña de maestro**. Si no los tienes o los olvidaste, pídeselos al coordinador del laboratorio.\nLos **alumnos** entran en la PC con su **matrícula** y su contraseña (la primera vez, con su código de activación).\nPara salir, pulsa **Cerrar sesión** en el menú lateral. Por seguridad, si recargas la página tendrás que entrar de nuevo.`
   },
   {
     id: 'about',
@@ -749,6 +911,17 @@ const helpTopics = [
     keys: ['sesiones', 'actividad', 'actividades', 'tabla', 'historial', 'que estan haciendo', 'que usan', 'login pendiente'],
     view: 'activity',
     answer: () => `En **Sesiones** está la tabla completa: **estudiante**, **equipo**, **aplicación**, **tiempo** y **estado**.\n• **Permitido**: uso académico o autorizado.\n• **No permitido**: actividad que conviene revisar.\n• **Requiere login**: la PC está prendida pero el alumno aún no inicia sesión en LabControl.`
+  },
+  {
+    id: 'reset',
+    keys: ['olvide mi contrasena', 'olvido mi contrasena', 'olvido su contrasena', 'olvide la contrasena', 'olvido la contrasena', 'olvido', 'olvide', 'olvidaron', 'restablecer', 'restablezco', 'codigo', 'codigo de activacion', 'activacion', 'activar', 'nueva contrasena', 'contrasena del alumno', 'matricula'],
+    view: 'students',
+    answer: () => `**Si un alumno olvida su contraseña:**\n1. Abre **Usuarios** y búscalo por nombre o matrícula.\n2. Pulsa **Restablecer** y luego **¿Confirmar?**.\n3. Aparece un **código nuevo**: dáselo en persona.\n4. El alumno entra en la PC con su **matrícula** y ese código, y crea una contraseña nueva.\n\nEl código sirve una sola vez, vence en 14 días y la contraseña anterior deja de funcionar. Queda registrado quién lo restableció.`
+  },
+  {
+    id: 'groups',
+    keys: ['grupo', 'grupos', 'clase', 'clases', 'carrera', 'filtrar', 'filtro'],
+    answer: () => `Arriba, junto al estado del servidor, está el selector **Grupo**. Al elegir uno, el panel muestra solo a los alumnos de ese grupo en Inicio, Sesiones, Usuarios y el reporte sin conexión.\nEl grupo de cada alumno viene de la lista de la escuela que importa el coordinador. Las PCs que todavía no inician sesión solo se ven en **Todos los grupos**.`
   },
   {
     id: 'report',

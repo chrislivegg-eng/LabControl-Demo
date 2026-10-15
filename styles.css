@@ -1267,3 +1267,138 @@ td:first-child {
     min-height: 44px;
   }
 }
+
+/* --- Grupos y alumnos registrados --- */
+[hidden] {
+  display: none !important;
+}
+
+.student-id {
+  display: block;
+  margin-top: 2px;
+  color: #8a7d74;
+  font-size: .72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+
+.group-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid #e7ded6;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 4px 0 12px;
+  color: #7c6f66;
+  font-size: .74rem;
+  font-weight: 800;
+}
+
+.group-filter select {
+  max-width: 220px;
+  border: 0;
+  background: transparent;
+  color: #1f1b18;
+  font-size: .8rem;
+  font-weight: 700;
+  padding: 8px 6px;
+  cursor: pointer;
+}
+
+.group-filter select:focus-visible,
+.roster-search input:focus-visible,
+.roster-reset:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
+
+.roster-search input {
+  width: min(280px, 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+  padding: 10px 14px;
+  font-size: .85rem;
+}
+
+.roster-reset {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #374151;
+  padding: 6px 12px;
+  font-size: .75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.roster-reset:hover {
+  border-color: #f97316;
+}
+
+.roster-reset.confirming {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.roster-reset:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.roster-code {
+  margin-bottom: 20px;
+  border: 1px solid #fed7aa;
+  border-radius: 16px;
+  background: #fff7ed;
+  padding: 16px 18px;
+  color: #431407;
+  font-size: .85rem;
+}
+
+.roster-code p {
+  margin: 0;
+}
+
+.roster-code-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 !important;
+}
+
+.roster-code-value span {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.roster-code-value button {
+  border: 1px solid #f97316;
+  border-radius: 10px;
+  background: #fff;
+  color: #c2410c;
+  padding: 6px 12px;
+  font-size: .75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.roster-code-note {
+  color: #7c2d12;
+  font-size: .78rem;
+}
+
+@media (max-width: 760px) {
+  .group-filter select {
+    max-width: 140px;
+  }
+}

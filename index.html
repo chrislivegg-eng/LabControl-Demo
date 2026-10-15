@@ -113,6 +113,10 @@
               <h2 id="page-title">Resumen del laboratorio</h2>
             </div>
             <div class="topbar-actions">
+              <label class="group-filter" for="group-filter" hidden>
+                <span>Grupo</span>
+                <select id="group-filter"><option value="">Todos los grupos</option></select>
+              </label>
               <span class="agent-status" id="agent-status">Datos demo</span>
               <button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span>Asistente</button>
             </div>
@@ -282,6 +286,39 @@
               <div class="p-8 sm:p-10">
                 <!-- Cuadrícula estilizada de estudiantes directamente -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="students-list"></div>
+              </div>
+            </article>
+
+            <!-- Alumnos registrados (con el servidor del laboratorio) -->
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden roster" id="roster" hidden>
+              <div class="h-2.5 bg-gradient-to-r from-orange-600 to-orange-400 w-full"></div>
+              <div class="p-8 sm:p-10">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pb-6 border-b border-gray-100 mb-6">
+                  <div>
+                    <span class="text-xs font-bold text-orange-600 tracking-widest uppercase block mb-1" id="roster-count">Alumnos</span>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight">Alumnos registrados</h3>
+                    <p class="text-sm text-gray-500 mt-1">Si un alumno olvida su contraseña, pulsa <strong>Restablecer</strong> y dale el código nuevo.</p>
+                  </div>
+                  <label class="roster-search" for="roster-search">
+                    <span class="sr-only">Buscar alumno</span>
+                    <input id="roster-search" type="search" placeholder="Buscar por nombre o matrícula" autocomplete="off" />
+                  </label>
+                </div>
+                <div class="roster-code" id="roster-code" role="status" hidden></div>
+                <div class="table-wrap overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead>
+                      <tr class="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        <th class="pb-3 px-2">Alumno</th>
+                        <th class="pb-3 px-2">Grupo</th>
+                        <th class="pb-3 px-2">Ahora</th>
+                        <th class="pb-3 px-2">Cuenta</th>
+                        <th class="pb-3 px-2"><span class="sr-only">Acciones</span></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 text-sm text-gray-700" id="roster-body"></tbody>
+                  </table>
+                </div>
               </div>
             </article>
           </section>

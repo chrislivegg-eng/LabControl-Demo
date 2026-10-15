@@ -11,7 +11,7 @@
 
 body {
   margin: 0;
-  height: 100vh;
+  min-height: 100vh;
   background:
     radial-gradient(circle at top left, rgba(249, 115, 22, .25), transparent 32%),
     linear-gradient(145deg, #fff7f2 0%, #fff 62%, #fee9dc 100%);
@@ -19,7 +19,7 @@ body {
 
 .agent-shell {
   display: grid;
-  height: 100vh;
+  min-height: 100vh;
   place-items: center;
   padding: 18px;
 }
@@ -154,4 +154,22 @@ button:disabled {
   font-size: 12px;
   line-height: 1.4;
   text-align: center;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: #6b5d55;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.setup-title {
+  margin: 4px 0 0;
+  color: #171412;
+  font-size: 18px;
+  font-weight: 900;
 }

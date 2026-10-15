@@ -43,7 +43,7 @@ let pendingTimer = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 460,
-    height: 620,
+    height: 680,
     resizable: false,
     maximizable: false,
     autoHideMenuBar: true,
@@ -398,12 +398,26 @@ ipcMain.handle('agent:get-context', () => ({
   displayName: activeSession?.displayName || ''
 }));
 
+// Token temporal cuando el alumno entra con codigo y debe crear su contrasena.
+let pendingSetup = null;
+
+function finishLogin(payload) {
+  pendingSetup = null;
+  activeSession = payload;
+  stopPendingLoop();
+  mainWindow.setAlwaysOnTop(false);
+  mainWindow.webContents.send('login-success', payload);
+  startReporting();
+  setTimeout(() => mainWindow.hide(), 1200);
+  return payload;
+}
+
 ipcMain.handle('agent:login', async (_event, credentials) => {
   const username = String(credentials?.username || '').trim();
   const password = String(credentials?.password || '');
 
   if (!username || !password) {
-    throw new Error('Escribe usuario y contraseña.');
+    throw new Error('Escribe tu matrícula y tu contraseña o código.');
   }
 
   const payload = await fetchJson('/api/agent/login', {
@@ -417,13 +431,29 @@ ipcMain.handle('agent:login', async (_event, credentials) => {
     })
   });
 
-  activeSession = payload;
-  stopPendingLoop();
-  mainWindow.setAlwaysOnTop(false);
-  mainWindow.webContents.send('login-success', payload);
-  startReporting();
-  setTimeout(() => mainWindow.hide(), 1200);
-  return payload;
+  if (payload.mustSetPassword) {
+    pendingSetup = { setupToken: payload.setupToken };
+    return { mustSetPassword: true, displayName: payload.displayName };
+  }
+  return finishLogin(payload);
+});
+
+ipcMain.handle('agent:set-password', async (_event, data) => {
+  const newPassword = String(data?.newPassword || '');
+  if (!pendingSetup) throw new Error('Vuelve a entrar con tu matrícula y tu código.');
+  if (newPassword !== String(data?.confirmPassword || '')) throw new Error('Las contraseñas no coinciden.');
+
+  try {
+    const payload = await fetchJson('/api/agent/set-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ setupToken: pendingSetup.setupToken, newPassword })
+    });
+    return finishLogin(payload);
+  } catch (error) {
+    if (error.status === 401) pendingSetup = null;
+    throw error;
+  }
 });
 
 // Solo una copia del agente por PC.
