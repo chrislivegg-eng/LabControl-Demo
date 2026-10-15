@@ -22,9 +22,10 @@ Marca cada punto. Si algo falla, anota que paso y toma captura del panel y de cu
 - [ ] Reiniciar la PC servidor **sin iniciar sesion** y, desde una laptop, comprobar que `http://labcontrol` abre el panel.
 - [ ] Desde la laptop de un maestro, abrir `http://labcontrol`. Debe aparecer el login del panel. En Mac, probar tambien `http://labcontrol.local`.
 - [ ] Entrar como maestro desde la laptop y ver el dashboard.
-- [ ] Crear las cuentas reales de maestros y alumnos con `npm run users` (ver `pc-bridge/README.md`).
-- [ ] Ejecutar `npm run users -- remove-demo`.
-- [ ] Repartir las contrasenas y **borrar** el CSV de contrasenas generado.
+- [ ] Preparar el Excel de alumnos desde la base de datos de la escuela: `nombre | apellido | matricula | grupo`.
+- [ ] Importarlo: `npm run alumnos -- importar alumnos.xlsx`. Si marca filas con error, corregirlas y repetir.
+- [ ] Crear las cuentas de maestros con `npm run users -- add ...` y ejecutar `npm run users -- remove-demo`.
+- [ ] Imprimir la hoja `codigos-activacion-<fecha>.html`, repartir los recuadros y **borrar** la hoja.
 
 ## C. Prueba piloto en 2 o 3 PCs
 
@@ -35,6 +36,10 @@ Panel en **Solo alertas** durante toda esta seccion.
 - [ ] La ventana de LabControl aparece sola al iniciar Windows.
 - [ ] Antes del login, la PC aparece en el panel como "Login pendiente".
 - [ ] Un login con contrasena incorrecta es rechazado.
+- [ ] Primera vez: matricula + codigo de activacion. La app pide crear contrasena. Despues se entra con matricula + contrasena.
+- [ ] El codigo ya usado no vuelve a funcionar.
+- [ ] En el panel, **Usuarios > Restablecer** da un codigo nuevo; la contrasena anterior deja de servir y el alumno crea otra.
+- [ ] El selector **Grupo** muestra solo a los alumnos de ese grupo.
 - [ ] Despues del login correcto, la ventana se oculta y el panel muestra el nombre del alumno.
 - [ ] Abrir Word: en unos 5 segundos el panel lo muestra como Permitido.
 - [ ] Abrir YouTube en Chrome o Edge: el panel lo marca como No permitido.

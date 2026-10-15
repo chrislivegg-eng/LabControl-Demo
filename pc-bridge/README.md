@@ -112,30 +112,51 @@ Limitacion: la busqueda evita servidores falsos, pero la conexion despues sigue 
 
 ## 2. Cuentas
 
-La primera vez que arranca el servidor se copian las cuentas demo. Antes de usar el laboratorio:
+La primera vez que arranca el servidor se copian las cuentas demo. Antes de usar el laboratorio se crean las cuentas reales y se borran las demo.
+
+### Alumnos: desde la lista de la escuela (Excel)
+
+Un Excel (`.xlsx`) o CSV con estos titulos en la primera fila, en cualquier orden:
+
+| nombre | apellido | matricula | grupo |
+| --- | --- | --- | --- |
+| Christian | Peters Lopez | DES0444 | 5 Seguridad Informatica |
+
+```powershell
+npm run alumnos -- importar alumnos.xlsx
+npm run alumnos -- lista
+```
+
+- **Usuario = matricula.** El alumno entra en la PC con su matricula.
+- **Nombre visible = primer nombre + primer apellido** ("Christian Peters"). En el panel se ve el nombre, con la matricula y el grupo debajo.
+- **Grupo** = la columna del Excel. El alumno no lo elige y no puede cambiarlo.
+- Si hay filas con errores (matricula invalida o repetida, datos faltantes), **no se importa nada** y se listan las filas a corregir.
+- Volver a importar actualiza nombre y grupo, y conserva la contrasena de cada alumno.
+
+**Codigos de activacion.** Cada alumno nuevo recibe un codigo de un solo uso (por ejemplo `K7Q-4M2`). La importacion crea `codigos-activacion-<fecha>.html` junto al Excel: abrelo, imprimelo, recorta y entrega cada recuadro. Despues **borra esa hoja**.
+
+La primera vez, el alumno escribe su matricula y el codigo, y la app le pide crear su propia contrasena (minimo 8 caracteres y sin su matricula). El codigo vence en 14 dias.
+
+**Contrasena olvidada.** En el panel, en **Usuarios**, el maestro busca al alumno y pulsa **Restablecer** y luego **Confirmar**. Aparece un codigo nuevo para darselo en persona. La contrasena anterior deja de funcionar y queda en la bitacora quien lo hizo. Tambien desde la terminal: `npm run alumnos -- nuevo-codigo DES0444`.
+
+El Excel y las hojas de codigos tienen datos personales: **nunca los subas a Git**. `.gitignore` ya los excluye.
+
+### Maestros y administradores
 
 ```powershell
 npm run users -- add profe.garcia maestro "Prof. Garcia"
-npm run users -- import alumnos.csv
+npm run users -- add coordlab admin "Coordinador de Laboratorio"
 npm run users -- remove-demo
 npm run users -- list
 ```
 
-Formato del CSV (con o sin encabezado):
+Sin contrasena en el comando, se genera una y se muestra una sola vez. `passwd <usuario>` genera otra y `remove <usuario>` borra la cuenta.
 
-```
-usuario,nombre,rol
-jperez,"Perez, Juan",alumno
-mlopez,Maria Lopez,alumno
-```
+Las contrasenas y los codigos se guardan con scrypt y salt, nunca en texto plano.
 
-Si no hay columna de contrasena, se genera una por cuenta y se guarda en `contrasenas-<fecha>.csv`. Repartelas a cada alumno y despues **borra ese archivo**.
+### Grupos en el panel
 
-Otros comandos:
-- `passwd <usuario>`: genera una contrasena nueva.
-- `remove <usuario>`: borra la cuenta.
-
-Las contrasenas se guardan con scrypt y salt, nunca en texto plano.
+El selector **Grupo** de la barra superior filtra Inicio, Sesiones, Usuarios y el reporte sin conexion. Los grupos salen de la columna "grupo" de los alumnos; no hay que crearlos aparte. Las PCs que aun no inician sesion solo aparecen en "Todos los grupos".
 
 ## 3. Instalador para las PCs de alumnos
 
