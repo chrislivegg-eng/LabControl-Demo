@@ -8,6 +8,7 @@
     "mock-agent": "node agent/mock-agent.js",
     "windows-agent": "node agent/windows-agent.js",
     "agent-app": "electron app/main.js",
+    "server-app": "electron app/server-window.js",
     "build:win": "electron-builder --win nsis",
     "build:win-portable": "electron-builder --win portable",
     "users": "node tools/users.js",

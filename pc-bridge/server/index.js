@@ -24,6 +24,9 @@ const auditPath = path.join(__dirname, 'audit.log');
 const PORT = Number(process.env.PORT || 3100);
 const HOST = process.env.HOST || '0.0.0.0';
 const ONLINE_WINDOW_MS = 15000;
+// Estado para la ventana del servidor (/api/health).
+let boundPort = PORT;
+let discoveryActive = false;
 
 const agentReports = new Map();
 const agentSessions = new Map();
@@ -1002,6 +1005,23 @@ const server = http.createServer((request, response) => {
     return;
   }
 
+  // Estado sin contrasena para la ventana del servidor (solo numeros, no datos de alumnos).
+  if (request.method === 'GET' && request.url === '/api/health') {
+    response.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*'
+    });
+    response.end(JSON.stringify({
+      ok: true,
+      port: boundPort,
+      hostname: os.hostname().toLowerCase(),
+      ip: lanIPv4(),
+      discovery: discoveryActive,
+      pcs: getOnlineReports().length
+    }));
+    return;
+  }
+
   if (request.method === 'GET' && request.url === '/api/lab/status') {
     const teacher = requireTeacher(request, response);
     if (!teacher) return;
@@ -1076,6 +1096,7 @@ function startDiscovery(httpPort) {
   try {
     const { privateKey } = loadOrCreateKeys(defaultPaths(__dirname));
     startDiscoveryResponder({ privateKey, httpPort });
+    discoveryActive = true;
   } catch (error) {
     console.error(`Descubrimiento automatico desactivado: ${error.message}`);
   }
@@ -1140,6 +1161,7 @@ server.once('error', error => {
 // Un solo aviso de "listo", con el puerto que realmente quedo en uso.
 server.once('listening', () => {
   const { port } = server.address();
+  boundPort = port;
   printReady(port);
   startDiscovery(port);
 });
