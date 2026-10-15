@@ -63,6 +63,7 @@ function createWindow() {
     maximizable: false,
     fullscreenable: false,
     title: 'LabControl · Servidor',
+    icon: path.join(__dirname, 'icon.ico'),
     backgroundColor: '#fff7f2',
     autoHideMenuBar: true,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
@@ -77,6 +78,7 @@ if (!hasLock) {
 } else {
   app.on('second-instance', () => { if (win) { win.show(); win.focus(); } });
   app.whenReady().then(async () => {
+    app.setAppUserModelId('com.labcontrol.servidor');
     Menu.setApplicationMenu(null);
     createWindow();
     // Si ya hay un servidor corriendo, solo lo monitorea; si no, lo arranca.
