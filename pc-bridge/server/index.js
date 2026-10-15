@@ -441,7 +441,7 @@ function normalizeRules(rules = {}) {
     blockedDomainSuffixes: uniqueRules(rules.blockedDomainSuffixes, normalizeDomainSuffix),
     blockedKeywords: uniqueRules(rules.blockedKeywords),
     allowedApps: uniqueRules(rules.allowedApps),
-    exceptions: uniqueRules(rules.exceptions)
+    exceptions: uniqueRules(rules.exceptions, normalizeException)
   };
 }
 
@@ -464,9 +464,49 @@ function matchesAnyRule(fields, ruleNames = []) {
   });
 }
 
+// Una excepcion puede ser un nombre ("canva", "scratch") o un dominio
+// ("canva.com"). Un dominio tambien se reconoce por su nombre en el titulo de
+// la ventana ("Canva - Diseno"), porque el agente no siempre ve la URL.
 function hasException(fields, rules) {
-  return matchesAnyRule(fields, rules.exceptions);
+  const exceptions = rules.exceptions || [];
+  if (matchesAnyRule(fields, exceptions)) return true;
+  const domains = exceptions.filter(item => item.includes('.'));
+  if (!domains.length) return false;
+  if (matchesDomain(getCandidateHostnames(fields), domains)) return true;
+  return Boolean(matchesDomainName(fields.join(' '), domains));
 }
+
+// Nombre mas especifico de un dominio: "mercadolibre.com.mx" -> "mercadolibre",
+// "www.canva.com" -> "canva", "classroom.google.com" -> "classroom".
+const COMMON_TLD_PARTS = new Set(['com', 'net', 'org', 'edu', 'gob', 'gov', 'mx', 'io', 'co', 'tv', 'app', 'me', 'es', 'us', 'info', 'dev', 'ai', 'gg']);
+// Palabras que aparecen en el titulo de casi toda ventana de navegador.
+const BROWSER_WORDS = new Set(['google', 'chrome', 'microsoft', 'edge', 'brave', 'mozilla', 'firefox', 'opera', 'windows', 'nueva', 'pestana']);
+function domainName(domain = '') {
+  const parts = String(domain).replace(/^www\./, '').split('.').filter(Boolean);
+  while (parts.length > 1 && COMMON_TLD_PARTS.has(parts[parts.length - 1])) parts.pop();
+  const name = parts[0] || '';
+  return BROWSER_WORDS.has(name) ? '' : name;
+}
+
+// El agente muchas veces solo ve el titulo de la ventana ("Canva - Diseno"),
+// no la URL. Se busca el nombre del dominio como palabra completa del titulo.
+function matchesDomainName(text, domains = []) {
+  const words = new Set(String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter(Boolean));
+  for (const domain of domains) {
+    const name = domainName(domain);
+    if (name.length >= 4 && words.has(name)) return domain;
+  }
+  return '';
+}
+
+// Normaliza una excepcion: dominios sin http/www, nombres en minusculas.
+function normalizeException(value = '') {
+  const clean = normalizeRuleValue(value);
+  if (!clean) return '';
+  return /^https?:\/\//.test(clean) || clean.includes('.') ? normalizeDomain(clean) : clean;
+}
+
+const REMOVABLE_RULE_LISTS = new Set(['blockedApps', 'blockedPages', 'blockedDomains', 'blockedDomainSuffixes', 'blockedKeywords']);
 
 function extractHostname(value = '') {
   const text = normalizeRuleValue(value);
@@ -534,7 +574,8 @@ function getBlockDecision({ app, windowTitle, processName, url, pageUrl }, rules
     return { blocked: false, blockType: 'none', matchedRule: '' };
   }
 
-  const matchedDomain = matchesDomain(hostnames, rules.blockedDomains);
+  const matchedDomain = matchesDomain(hostnames, rules.blockedDomains)
+    || (isBrowser ? matchesDomainName(windowTitle || app, rules.blockedDomains) : '');
   if (matchedDomain) {
     return { blocked: true, blockType: 'page', matchedRule: `blockedDomains:${matchedDomain}` };
   }
@@ -734,13 +775,31 @@ async function handleRulesUpdate(request, response) {
       nextRules[rule.key] = [...(nextRules[rule.key] || []), rule.value];
     }
 
+    // Quitar una regla: { removeRule: { list: 'blockedDomains', value: 'tiktok.com' } }
+    if (body.removeRule) {
+      const list = String(body.removeRule.list || '');
+      const value = normalizeRuleValue(body.removeRule.value);
+      if (!REMOVABLE_RULE_LISTS.has(list) || !value) {
+        sendJson(response, 400, { ok: false, error: 'Regla no valida.' });
+        return;
+      }
+      const before = (nextRules[list] || []).length;
+      nextRules[list] = (nextRules[list] || []).filter(item => normalizeRuleValue(item) !== value);
+      if (nextRules[list].length === before) {
+        sendJson(response, 404, { ok: false, error: 'Esa regla ya no existe.' });
+        return;
+      }
+    }
+
     const normalizedRules = normalizeRules(nextRules);
     await saveRules(normalizedRules);
     await appendAudit({
       event: 'rules-update',
       username: teacher.username,
       blockEnabled: normalizedRules.blockEnabled,
-      changes: Object.keys(body)
+      changes: Object.keys(body),
+      ...(body.addBlockedWebRule ? { added: String(body.addBlockedWebRule).slice(0, 120) } : {}),
+      ...(body.removeRule ? { removed: `${body.removeRule.list}:${String(body.removeRule.value).slice(0, 120)}` } : {})
     });
     sendJson(response, 200, { ok: true, rules: normalizedRules });
   } catch (error) {
@@ -753,7 +812,7 @@ async function handleExceptionUpdate(request, response) {
   if (!teacher) return;
   try {
     const body = await readRequestJson(request);
-    const exceptionName = String(body.name || '').trim().toLowerCase();
+    const exceptionName = normalizeException(body.name);
     const action = String(body.action || 'allow');
     const rules = await loadRules();
 
@@ -762,7 +821,7 @@ async function handleExceptionUpdate(request, response) {
       return;
     }
 
-    const exceptions = new Set(rules.exceptions.map(item => String(item).toLowerCase()));
+    const exceptions = new Set(rules.exceptions.map(normalizeException));
     if (action === 'remove') {
       exceptions.delete(exceptionName);
     } else {

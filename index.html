@@ -420,15 +420,15 @@
                     <div class="rule-grid">
                       <div class="rule-box danger">
                         <h5>Apps y páginas base</h5>
-                        <p id="blocked-list">Cargando reglas...</p>
+                        <div class="rule-chips" id="blocked-list">Cargando reglas...</div>
                       </div>
                       <div class="rule-box web">
                         <h5>Reglas web</h5>
-                        <p id="blocked-web-list">Cargando reglas web...</p>
+                        <div class="rule-chips" id="blocked-web-list">Cargando reglas web...</div>
                       </div>
                       <div class="rule-box allow">
                         <h5>Excepciones activas</h5>
-                        <p id="exceptions-list">Sin excepciones por ahora.</p>
+                        <div class="rule-chips" id="exceptions-list">Sin excepciones por ahora.</div>
                       </div>
                     </div>
 
@@ -440,9 +440,17 @@
                       </div>
                     </form>
 
+                    <form class="web-rule-form exception-form" id="exception-form">
+                      <label for="exception-input">Permitir una página o app como excepción</label>
+                      <div>
+                        <input id="exception-input" name="exception" placeholder="canva.com, classroom.google.com o scratch" autocomplete="off" />
+                        <button type="submit">Permitir</button>
+                      </div>
+                    </form>
+
+                    <p class="rule-hint">Para quitar una regla o una excepción, pulsa la ✕ de su etiqueta.</p>
+
                     <div class="exception-actions">
-                      <button type="button" class="exception-btn allow" data-exception-action="allow" data-exception="youtube">Permitir YouTube para esta clase</button>
-                      <button type="button" class="exception-btn remove" data-exception-action="remove" data-exception="youtube">Quitar excepción de YouTube</button>
                       <button type="button" class="exception-btn notify" id="enable-browser-notifications">Activar notificaciones</button>
                       <button type="button" class="exception-btn notify secondary" id="test-browser-notification">Probar notificación</button>
                     </div>
@@ -450,14 +458,6 @@
                     <p class="rule-note" id="rules-message">Los cambios se aplican a los agentes conectados en su siguiente reporte.</p>
                   </div>
 
-                  <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <h4 class="text-sm font-bold text-gray-900 mb-2">Tiempo límite predeterminado de sesión</h4>
-                    <p class="text-xs text-gray-500 mb-3">Ajusta la duración estándar de la clase en el laboratorio (bloques de 50 min o doble de 100 min).</p>
-                    <select class="bg-white border border-gray-200 text-sm font-semibold rounded-xl px-4 py-2.5 text-gray-700 focus:outline-none focus:border-orange-500 w-full sm:w-64">
-                      <option value="50">50 minutos (Sesión estándar)</option>
-                      <option value="100">100 minutos (Sesión doble)</option>
-                    </select>
-                  </div>
                 </div>
               </div>
             </article>

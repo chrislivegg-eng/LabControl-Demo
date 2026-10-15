@@ -1370,3 +1370,79 @@ td:first-child {
   color: #7c2d12;
   font-size: .78rem;
 }
+
+/* --- Reglas y excepciones como etiquetas que se pueden quitar --- */
+.rule-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #6b7280;
+  font-size: .82rem;
+}
+
+.rule-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  border: 1px solid rgba(17, 24, 39, .1);
+  border-radius: 999px;
+  background: #fff;
+  color: #1f2937;
+  padding: 3px 4px 3px 10px;
+  font-size: .78rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rule-box.danger .rule-chip { border-color: #fecaca; }
+.rule-box.web .rule-chip { border-color: #bfdbfe; }
+.rule-box.allow .rule-chip { border-color: #bbf7d0; }
+
+.rule-chip button {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #6b7280;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rule-chip button:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.rule-chip button:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 1px;
+}
+
+.rule-chip button:disabled {
+  opacity: .4;
+  cursor: wait;
+}
+
+.rule-empty {
+  color: #9ca3af;
+}
+
+.exception-form input {
+  border-color: #bbf7d0;
+}
+
+.exception-form button {
+  background: #16a34a;
+}
+
+.rule-hint {
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: .76rem;
+}

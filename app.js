@@ -260,31 +260,30 @@ const rulesMessage = document.querySelector('#rules-message');
 const webRuleForm = document.querySelector('#web-rule-form');
 const webRuleInput = document.querySelector('#web-rule-input');
 
-function formatRuleList(list = []) {
-  return list.length ? list.map(item => item.charAt(0).toUpperCase() + item.slice(1)).join(', ') : 'Ninguna regla configurada.';
+// Cada regla es una etiqueta con una X para quitarla.
+function ruleChip(value, list, label = value) {
+  return `<span class="rule-chip">${escapeHtml(label)}<button type="button" data-remove-list="${escapeHtml(list)}" data-remove-value="${escapeHtml(value)}" aria-label="Quitar ${escapeHtml(label)}" title="Quitar">×</button></span>`;
 }
 
-function formatWebRuleList(rules = {}) {
-  const groups = [
-    ['Dominios', rules.blockedDomains || []],
-    ['Sufijos', rules.blockedDomainSuffixes || []],
-    ['Palabras', rules.blockedKeywords || []]
-  ].filter(([, list]) => list.length);
-
-  if (!groups.length) return 'Ninguna regla web configurada.';
-
-  return groups
-    .map(([label, list]) => `${label}: ${list.join(', ')}`)
-    .join(' · ');
+function renderChips(container, chips, emptyText) {
+  if (!container) return;
+  container.innerHTML = chips.length ? chips.join('') : `<span class="rule-empty">${escapeHtml(emptyText)}</span>`;
 }
 
 function renderRulesPanel(rules) {
   if (!ruleBlockEnabled) return;
   ruleBlockEnabled.checked = Boolean(rules.blockEnabled);
   if (ruleBlockLabel) ruleBlockLabel.textContent = rules.blockEnabled ? 'Bloqueo activo' : 'Solo alertas';
-  if (blockedList) blockedList.textContent = formatRuleList([...(rules.blockedApps || []), ...(rules.blockedPages || [])]);
-  if (blockedWebList) blockedWebList.textContent = formatWebRuleList(rules);
-  if (exceptionsList) exceptionsList.textContent = formatRuleList(rules.exceptions || []).replace('Ninguna regla configurada.', 'Sin excepciones por ahora.');
+  renderChips(blockedList, [
+    ...(rules.blockedApps || []).map(item => ruleChip(item, 'blockedApps')),
+    ...(rules.blockedPages || []).map(item => ruleChip(item, 'blockedPages'))
+  ], 'Ninguna app bloqueada.');
+  renderChips(blockedWebList, [
+    ...(rules.blockedDomains || []).map(item => ruleChip(item, 'blockedDomains')),
+    ...(rules.blockedDomainSuffixes || []).map(item => ruleChip(item, 'blockedDomainSuffixes', `*${item}`)),
+    ...(rules.blockedKeywords || []).map(item => ruleChip(item, 'blockedKeywords', `“${item}”`))
+  ], 'Ninguna regla web.');
+  renderChips(exceptionsList, (rules.exceptions || []).map(item => ruleChip(item, 'exceptions')), 'Sin excepciones por ahora.');
 }
 
 async function loadRulesPanel() {
@@ -337,29 +336,55 @@ webRuleForm?.addEventListener('submit', event => {
     });
 });
 
-document.querySelectorAll('[data-exception-action]').forEach(button => {
-  button.addEventListener('click', async () => {
-    try {
-      const response = await teacherFetch(RULES_EXCEPTION_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: button.dataset.exception,
-          action: button.dataset.exceptionAction
-        })
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'No fue posible cambiar la excepción.');
-      renderRulesPanel(payload.rules);
-      if (rulesMessage) {
-        rulesMessage.textContent = button.dataset.exceptionAction === 'allow'
-          ? 'YouTube permitido por excepción para esta clase.'
-          : 'YouTube vuelve a estar sujeto a las reglas del laboratorio.';
-      }
-    } catch (error) {
-      if (rulesMessage) rulesMessage.textContent = error.message;
-    }
+async function changeException(name, action) {
+  const response = await teacherFetch(RULES_EXCEPTION_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, action })
   });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'No fue posible cambiar la excepción.');
+  renderRulesPanel(payload.rules);
+}
+
+const exceptionForm = document.querySelector('#exception-form');
+const exceptionInput = document.querySelector('#exception-input');
+
+exceptionForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const value = exceptionInput?.value.trim();
+  if (!value) {
+    if (rulesMessage) rulesMessage.textContent = 'Escribe la página o app que quieres permitir.';
+    return;
+  }
+  try {
+    await changeException(value, 'allow');
+    exceptionInput.value = '';
+    if (rulesMessage) rulesMessage.textContent = `${value} quedó permitido como excepción.`;
+  } catch (error) {
+    if (rulesMessage) rulesMessage.textContent = error.message;
+  }
+});
+
+// Quitar una regla o una excepcion desde la X de su etiqueta.
+document.querySelector('#settings-page')?.addEventListener('click', async event => {
+  const button = event.target.closest('[data-remove-list]');
+  if (!button) return;
+  const list = button.dataset.removeList;
+  const value = button.dataset.removeValue;
+  button.disabled = true;
+  try {
+    if (list === 'exceptions') {
+      await changeException(value, 'remove');
+      if (rulesMessage) rulesMessage.textContent = `${value} ya no es excepción: vuelve a seguir las reglas.`;
+    } else {
+      await saveRulesPatch({ removeRule: { list, value } });
+      if (rulesMessage) rulesMessage.textContent = `${value} ya no está prohibido.`;
+    }
+  } catch (error) {
+    button.disabled = false;
+    if (rulesMessage) rulesMessage.textContent = error.message;
+  }
 });
 
 
@@ -921,15 +946,15 @@ const helpTopics = [
   },
   {
     id: 'settings',
-    keys: ['configuracion', 'configurar', 'ajustes', 'ajustar', 'bloqueo', 'bloquear', 'solo alertas', 'regla', 'reglas', 'prohibir', 'pagina prohibida', 'dominio'],
+    keys: ['configuracion', 'configurar', 'ajustes', 'ajustar', 'bloqueo', 'bloquear', 'solo alertas', 'regla', 'reglas', 'prohibir', 'pagina prohibida', 'dominio', 'quitar regla', 'borrar regla', 'eliminar regla', 'desprohibir'],
     view: 'settings',
-    answer: () => `En **Configuración** ajustas las reglas del laboratorio:\n• **Solo alertas**: el panel avisa, pero no se cierra nada.\n• **Bloqueo activo**: la PC cierra la pestaña o la aplicación no permitida.\n• **Agregar regla**: escribe un dominio (youtube.com), un sufijo (.io) o una palabra para prohibirla.\n\nCada cambio queda registrado con tu usuario.`
+    answer: () => `En **Configuración** ajustas las reglas del laboratorio:\n• **Solo alertas**: el panel avisa, pero no se cierra nada.\n• **Bloqueo activo**: la PC cierra la pestaña o la aplicación no permitida.\n• **Agregar regla**: escribe un dominio (youtube.com), un sufijo (.io) o una palabra para prohibirla.\n• **Quitar regla**: pulsa la **✕** de su etiqueta.\n\nCada cambio queda registrado con tu usuario.`
   },
   {
     id: 'exceptions',
     keys: ['excepcion', 'excepciones', 'permitir', 'desbloquear', 'autorizar'],
     view: 'settings',
-    answer: () => `Una **excepción** permite algo que normalmente está prohibido, por ejemplo **YouTube** para una clase que lo necesita.\nSe activa y se quita en **Configuración**. Queda visible en la lista de excepciones y registrada con tu usuario.`
+    answer: () => `Una **excepción** permite algo que normalmente está prohibido, por ejemplo **YouTube** o **canva.com** para una clase que lo necesita.\nEn **Configuración**, escríbela en "Permitir una página o app como excepción" y pulsa **Permitir**. Para quitarla, pulsa la **✕** de su etiqueta.\nQueda visible en Excepciones activas y registrada con tu usuario.`
   },
   {
     id: 'alerts',
