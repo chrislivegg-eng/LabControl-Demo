@@ -1,13 +1,16 @@
 import { createReadStream } from 'node:fs';
 import { access, appendFile, copyFile, readFile, writeFile } from 'node:fs/promises';
-import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultPaths, loadOrCreateKeys, startDiscoveryResponder } from './discovery.js';
 import { OfflineStore } from './offline-store.js';
-import { ClassesStore } from './classes-store.js';
+import {
+  clearActivation, issueActivation, publicStudent, validateNewPassword,
+  verifyActivation, verifyPassword, hashPassword, writeUsersFile
+} from './accounts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const bridgeDir = path.resolve(__dirname, '..');
@@ -167,11 +170,8 @@ async function loadUsers() {
   return JSON.parse(raw);
 }
 
-function verifyPassword(password, user) {
-  const attemptedHash = scryptSync(String(password || ''), user.passwordSalt, 32);
-  const storedHash = Buffer.from(user.passwordHash, 'hex');
-  if (attemptedHash.length !== storedHash.length) return false;
-  return timingSafeEqual(attemptedHash, storedHash);
+async function saveUsers(users) {
+  writeUsersFile(usersPath, users);
 }
 
 
@@ -244,39 +244,120 @@ async function handleAgentLogin(request, response) {
       return;
     }
 
-    if (!agentId || !username || !password || !user || !verifyPassword(password, user)) {
+    if (!agentId || !username || !password || !user) {
       registerLoginFailure(key);
-      sendJson(response, 401, {
-        ok: false,
-        error: 'Usuario o contraseña incorrectos.'
-      });
+      sendJson(response, 401, { ok: false, error: 'Matrícula o contraseña incorrectas.' });
       return;
     }
 
-    loginFailures.delete(key);
-    // Una PC solo tiene una sesion activa: al volver a entrar se reemplaza la anterior.
-    for (const [token, existing] of agentSessions) {
-      if (existing.agentId === agentId) agentSessions.delete(token);
+    if (verifyPassword(password, user)) {
+      loginFailures.delete(key);
+      sendJson(response, 200, createAgentSession(user, agentId, pc));
+      return;
     }
-    const sessionToken = randomUUID();
-    const session = {
-      sessionToken,
-      agentId,
-      pc,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role,
-      startedAt: new Date().toISOString()
-    };
-    agentSessions.set(sessionToken, session);
 
-    sendJson(response, 200, {
-      ok: true,
-      sessionToken,
-      username: session.username,
-      displayName: session.displayName,
-      role: session.role
-    });
+    // Codigo de activacion (primera vez o acceso restablecido): pide crear contrasena.
+    if (verifyActivation(password, user)) {
+      loginFailures.delete(key);
+      const setupToken = randomUUID();
+      setupTokens.set(setupToken, { username: user.username, agentId, pc, expiresAt: Date.now() + SETUP_TOKEN_MS });
+      sendJson(response, 200, { ok: true, mustSetPassword: true, setupToken, displayName: user.displayName });
+      return;
+    }
+
+    registerLoginFailure(key);
+    sendJson(response, 401, { ok: false, error: 'Matrícula o contraseña incorrectas.' });
+  } catch (error) {
+    sendJson(response, 500, { ok: false, error: error.message });
+  }
+}
+
+// Una PC solo tiene una sesion activa: al volver a entrar se reemplaza la anterior.
+function createAgentSession(user, agentId, pc) {
+  for (const [token, existing] of agentSessions) {
+    if (existing.agentId === agentId) agentSessions.delete(token);
+  }
+  const sessionToken = randomUUID();
+  const session = {
+    sessionToken,
+    agentId,
+    pc,
+    username: user.username,
+    displayName: user.displayName,
+    role: user.role,
+    startedAt: new Date().toISOString()
+  };
+  agentSessions.set(sessionToken, session);
+  return { ok: true, sessionToken, username: session.username, displayName: session.displayName, role: session.role };
+}
+
+const SETUP_TOKEN_MS = 10 * 60 * 1000;
+const setupTokens = new Map();
+
+// El alumno crea su contrasena despues de entrar con el codigo de activacion.
+async function handleSetPassword(request, response) {
+  try {
+    const body = await readRequestJson(request);
+    const setup = setupTokens.get(String(body.setupToken || ''));
+    if (!setup || setup.expiresAt < Date.now()) {
+      sendJson(response, 401, { ok: false, error: 'El tiempo para crear la contraseña terminó. Vuelve a entrar con tu código.' });
+      return;
+    }
+    const users = await loadUsers();
+    const user = users.find(entry => entry.username === setup.username);
+    if (!user) {
+      sendJson(response, 404, { ok: false, error: 'La cuenta ya no existe.' });
+      return;
+    }
+    const problem = validateNewPassword(body.newPassword, user);
+    if (problem) {
+      sendJson(response, 400, { ok: false, error: problem });
+      return;
+    }
+    Object.assign(user, hashPassword(String(body.newPassword)));
+    clearActivation(user);
+    await saveUsers(users);
+    setupTokens.delete(String(body.setupToken));
+    await appendAudit({ event: 'password-set', username: user.username, pc: setup.pc });
+    sendJson(response, 200, createAgentSession(user, setup.agentId, setup.pc));
+  } catch (error) {
+    sendJson(response, 500, { ok: false, error: error.message });
+  }
+}
+
+// --- Alumnos (para el panel del maestro) ---
+async function handleStudentList(teacher, response) {
+  try {
+    const users = await loadUsers();
+    const students = users.filter(user => user.role === 'student').map(user => publicStudent(user))
+      .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
+    sendJson(response, 200, { ok: true, students, ...groupsPayload(teacher, users) });
+  } catch (error) {
+    sendJson(response, 500, { ok: false, error: error.message });
+  }
+}
+
+// El maestro restablece el acceso: se genera un codigo nuevo de un solo uso.
+async function handleStudentReset(teacher, request, response) {
+  try {
+    const body = await readRequestJson(request);
+    const username = String(body.username || '').trim().toLowerCase();
+    const users = await loadUsers();
+    const user = users.find(entry => entry.username === username && entry.role === 'student');
+    if (!user) {
+      sendJson(response, 404, { ok: false, error: 'No existe un alumno con esa matrícula.' });
+      return;
+    }
+    // La contrasena anterior deja de servir: el alumno entra con el codigo nuevo.
+    delete user.passwordHash;
+    delete user.passwordSalt;
+    const code = issueActivation(user);
+    await saveUsers(users);
+    for (const [token, session] of agentSessions) {
+      if (session.username === user.username) agentSessions.delete(token);
+    }
+    await appendAudit({ event: 'password-reset', username: teacher.username, student: user.username });
+    sendJson(response, 200, { ok: true, code, expiresAt: user.activationExpires, student: publicStudent(user) });
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
   }
@@ -551,10 +632,11 @@ async function handleOfflineSummary(teacher, response) {
       const decision = getBlockDecision({ app, windowTitle: entry.title, processName: entry.processName }, rules);
       return { ...decision, app };
     });
-    const group = activeClassFor(teacher);
+    const users = await loadUsers();
+    const group = activeGroupFor(teacher, users);
     if (group) {
-      summary.pcs = summary.pcs.filter(pc => ClassesStore.includes(group, { pc: pc.pc })
-        || pc.students.some(student => ClassesStore.includes(group, { username: student })));
+      const members = new Set(users.filter(user => user.group === group.id).map(user => user.username));
+      summary.pcs = summary.pcs.filter(pc => pc.students.some(student => members.has(student)));
     }
     summary.activeClass = group ? { id: group.id, name: group.name } : null;
     sendJson(response, 200, summary);
@@ -563,42 +645,42 @@ async function handleOfflineSummary(teacher, response) {
   }
 }
 
-// --- Clases y grupos ---
-const classesStore = new ClassesStore(__dirname);
+// --- Grupos (salen de la columna "grupo" de cada cuenta de alumno) ---
+function studentGroups(users) {
+  const counts = new Map();
+  for (const user of users) {
+    if (user.role !== 'student' || !user.group) continue;
+    counts.set(user.group, (counts.get(user.group) || 0) + 1);
+  }
+  return [...counts].map(([name, students]) => ({ id: name, name, students }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+}
 
-// Clase activa del maestro, solo si sigue existiendo y le corresponde.
-function activeClassFor(teacher) {
+// Grupo activo del maestro, solo si todavia existe.
+function activeGroupFor(teacher, users) {
   if (!teacher?.activeClassId) return null;
-  const group = classesStore.visibleTo(teacher).find(item => item.id === teacher.activeClassId);
+  const group = studentGroups(users).find(item => item.id === teacher.activeClassId);
   if (!group) teacher.activeClassId = '';
   return group || null;
 }
 
-function classesPayload(teacher) {
-  const active = activeClassFor(teacher);
-  return {
-    ok: true,
-    activeClassId: active ? active.id : '',
-    classes: classesStore.visibleTo(teacher).map(group => ({
-      id: group.id,
-      name: group.name,
-      students: group.students.length,
-      pcs: group.pcs.length
-    }))
-  };
+function groupsPayload(teacher, users) {
+  const active = activeGroupFor(teacher, users);
+  return { activeClassId: active ? active.id : '', classes: studentGroups(users) };
 }
 
 async function handleSetActiveClass(teacher, request, response) {
   try {
     const body = await readRequestJson(request);
     const classId = String(body.classId || '');
-    if (classId && !classesStore.visibleTo(teacher).some(group => group.id === classId)) {
-      sendJson(response, 404, { ok: false, error: 'Esa clase no existe o no esta asignada a tu cuenta.' });
+    const users = await loadUsers();
+    if (classId && !studentGroups(users).some(group => group.id === classId)) {
+      sendJson(response, 404, { ok: false, error: 'Ese grupo no existe.' });
       return;
     }
     teacher.activeClassId = classId;
-    await appendAudit({ event: 'active-class', username: teacher.username, classId: classId || 'todas' });
-    sendJson(response, 200, classesPayload(teacher));
+    await appendAudit({ event: 'active-class', username: teacher.username, classId: classId || 'todos' });
+    sendJson(response, 200, { ok: true, ...groupsPayload(teacher, users) });
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
   }
@@ -737,11 +819,15 @@ async function handleExceptionUpdate(request, response) {
   }
 }
 
-function buildStatusPayload(teacher) {
-  const group = activeClassFor(teacher);
-  const reports = getOnlineReports().filter(report => ClassesStore.includes(group, report));
+function buildStatusPayload(teacher, users) {
+  const group = activeGroupFor(teacher, users);
+  const byUsername = new Map(users.map(user => [user.username, user]));
+  // Con un grupo elegido solo se ven sus alumnos; las PCs sin sesion solo en "Todos".
+  const reports = getOnlineReports().filter(report => !group || byUsername.get(report.username)?.group === group.id);
   const activities = reports.map(report => ({
     name: report.name,
+    matricula: report.username ? (byUsername.get(report.username)?.matricula || report.username.toUpperCase()) : '',
+    group: byUsername.get(report.username)?.group || '',
     pc: report.pc,
     sessionId: report.sessionId,
     app: report.app,
@@ -852,14 +938,37 @@ const server = http.createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/api/lab/status') {
     const teacher = requireTeacher(request, response);
     if (!teacher) return;
-    sendJson(response, 200, buildStatusPayload(teacher));
+    loadUsers()
+      .then(users => sendJson(response, 200, buildStatusPayload(teacher, users)))
+      .catch(error => sendJson(response, 500, { ok: false, error: error.message }));
     return;
   }
 
   if (request.method === 'GET' && request.url === '/api/lab/classes') {
     const teacher = requireTeacher(request, response);
     if (!teacher) return;
-    sendJson(response, 200, classesPayload(teacher));
+    loadUsers()
+      .then(users => sendJson(response, 200, { ok: true, ...groupsPayload(teacher, users) }))
+      .catch(error => sendJson(response, 500, { ok: false, error: error.message }));
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/api/lab/students') {
+    const teacher = requireTeacher(request, response);
+    if (!teacher) return;
+    handleStudentList(teacher, response);
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/api/lab/students/reset') {
+    const teacher = requireTeacher(request, response);
+    if (!teacher) return;
+    handleStudentReset(teacher, request, response);
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/api/agent/set-password') {
+    handleSetPassword(request, response);
     return;
   }
 
