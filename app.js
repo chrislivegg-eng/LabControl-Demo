@@ -743,6 +743,25 @@ historyBody?.addEventListener('keydown', event => {
   renderHistory();
 });
 
+// La grafica "Tiempo por aplicacion" se despliega bajo demanda. Al abrirla se
+// re-dibuja para que tome el tamano correcto (si estaba oculta salia en blanco).
+function toggleUsagePanel() {
+  const panel = document.querySelector('#usage-panel');
+  const toggle = document.querySelector('#usage-toggle');
+  const chevron = document.querySelector('#usage-chevron');
+  const hint = document.querySelector('#usage-hint');
+  if (!panel) return;
+  const willOpen = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !willOpen);
+  if (chevron) chevron.style.transform = willOpen ? 'rotate(180deg)' : '';
+  if (toggle) toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  if (hint) hint.textContent = willOpen ? 'Toca para ocultar las estadísticas' : 'Toca para ver las estadísticas';
+  if (willOpen) {
+    if (AGENT_API_URL) loadUsageChart();
+    setTimeout(() => { try { usageChart?.resize(); usageChart?.update(); } catch { /* ignore */ } }, 60);
+  }
+}
+
 // Grafica "Tiempo por aplicacion" con datos reales del historial.
 async function loadUsageChart() {
   if (!AGENT_API_URL || !teacherToken || !usageChart) return;
