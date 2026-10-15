@@ -1081,17 +1081,55 @@ function startDiscovery(httpPort) {
   }
 }
 
+// Primera IPv4 de la red local (para mostrarla sin tener que correr ipconfig).
+function lanIPv4() {
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const iface of list || []) {
+      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
+    }
+  }
+  return null;
+}
+
 function printReady(port) {
+  const tty = Boolean(process.stdout.isTTY);
+  const c = tty
+    ? { r: '\x1b[0m', o: '\x1b[38;5;208m', b: '\x1b[1m', g: '\x1b[90m', ok: '\x1b[38;5;41m', w: '\x1b[97m' }
+    : { r: '', o: '', b: '', g: '', ok: '', w: '' };
   const suffix = port === 80 ? '' : `:${port}`;
-  console.log(`LabControl listo. Panel en esta PC: http://127.0.0.1${suffix}`);
-  console.log(`Desde otras PCs: http://${os.hostname().toLowerCase()}${suffix}  o  http://IP-DE-ESTA-PC${suffix}`);
+  const ip = lanIPv4();
+  const host = os.hostname().toLowerCase();
+  const W = 54;
+  const vis = s => [...s.replace(/\x1b\[[0-9;]*m/g, '')].length;
+  const pad = s => s + ' '.repeat(Math.max(0, W - vis(s)));
+  const bar = ch => ch.repeat(W + 2);
+  const row = s => `${c.o}║${c.r} ${pad(s)} ${c.o}║${c.r}`;
+
+  const out = [
+    '',
+    `${c.o}╔${bar('═')}╗${c.r}`,
+    row(`${c.b}${c.o}▌${c.r} ${c.b}${c.w}LabControl${c.r}${c.g}  ·  Servidor del laboratorio${c.r}`),
+    row(`${c.g}Colegio Ciudadano${c.r}`),
+    `${c.o}╠${bar('═')}╣${c.r}`,
+    row(`${c.ok}● EN LÍNEA${c.r}${c.g}    —    Puerto ${port}${c.r}`),
+    row(''),
+    row(`${c.g}En esta PC${c.r}     ${c.w}http://127.0.0.1${suffix}${c.r}`),
+    row(`${c.g}Desde otras${c.r}    ${c.w}http://${ip || 'IP-DE-ESTA-PC'}${suffix}${c.r}`),
+    row(`               ${c.w}http://${host}${suffix}${c.r}`),
+    row(''),
+    row(`${c.g}Entra como maestro para ver el panel.${c.r}`),
+    row(`${c.g}Deja esta ventana abierta durante la clase.${c.r}`),
+    `${c.o}╚${bar('═')}╝${c.r}`,
+    ''
+  ];
+  console.log(out.join('\n'));
 }
 
 // Si el puerto pedido (por ejemplo 80) esta ocupado o no esta permitido,
 // se usa el 3100 para que el laboratorio no se quede sin servidor.
 server.once('error', error => {
   if (PORT !== FALLBACK_PORT && (error.code === 'EADDRINUSE' || error.code === 'EACCES')) {
-    console.error(`No se pudo usar el puerto ${PORT} (${error.code}). Se usara el ${FALLBACK_PORT}.`);
+    console.log(`Puerto ${PORT} ocupado; el servidor usara el ${FALLBACK_PORT}.`);
     server.listen(FALLBACK_PORT, HOST);
     return;
   }

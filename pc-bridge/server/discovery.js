@@ -97,7 +97,11 @@ export function startDiscoveryResponder({ privateKey, httpPort }) {
   });
 
   socket.bind(DISCOVERY_PORT, () => {
-    console.log(`Descubrimiento automatico escuchando en UDP ${DISCOVERY_PORT}`);
+    const tty = Boolean(process.stdout.isTTY);
+    const ok = tty ? '\x1b[38;5;41m' : '';
+    const dim = tty ? '\x1b[90m' : '';
+    const r = tty ? '\x1b[0m' : '';
+    console.log(`${ok}✓${r} ${dim}Busqueda automatica activa — los equipos encuentran el servidor solos.${r}`);
   });
 
   return socket;
