@@ -30,6 +30,10 @@ let locating = null;
 const AGENT_ID = process.env.LABCONTROL_AGENT_ID || os.hostname();
 const LOGIN_RETRY_MS = Number(process.env.LABCONTROL_LOGIN_RETRY_MS || 5000);
 const ENABLE_BLOCKING = process.argv.includes('--enable-blocking');
+// Bloqueo de login: la PC no se puede usar sin iniciar sesion.
+// Se puede apagar para pruebas arrancando con LABCONTROL_LOCK=0.
+const LOGIN_LOCK = process.env.LABCONTROL_LOCK !== '0';
+let lockActive = false;
 
 let mainWindow;
 let tray;
@@ -67,10 +71,24 @@ function createWindow() {
         mainWindow.hide();
         return;
       }
-      mainWindow.show();
-      mainWindow.focus();
+      showLoginWindow();
       mainWindow.webContents.send('login-required', 'Debes iniciar sesión para usar esta PC.');
     }
+  });
+
+  // Mientras la PC esta bloqueada por falta de login, el foco regresa al login
+  // si el alumno hace clic en otro lado o intenta cambiar de ventana.
+  mainWindow.on('blur', () => {
+    if (!lockActive) return;
+    setImmediate(() => {
+      if (!lockActive || !mainWindow) return;
+      try { mainWindow.show(); mainWindow.moveTop(); mainWindow.focus(); } catch { /* ignore */ }
+    });
+  });
+  mainWindow.on('minimize', event => {
+    if (!lockActive) return;
+    event.preventDefault();
+    try { mainWindow.restore(); mainWindow.focus(); } catch { /* ignore */ }
   });
 }
 
@@ -91,8 +109,43 @@ function createTray() {
 function showLoginWindow() {
   if (!mainWindow) return;
   mainWindow.show();
-  mainWindow.focus();
-  mainWindow.setAlwaysOnTop(!activeSession);
+  // Sin sesion y con servidor encendido: se bloquea la PC hasta iniciar sesion.
+  if (!activeSession && serverOnline) {
+    setLock(true);
+  } else {
+    setLock(false);
+    mainWindow.setAlwaysOnTop(!activeSession);
+    mainWindow.focus();
+  }
+}
+
+// Pantalla de bloqueo: sin sesion la PC no se puede usar. Ocupa toda la
+// pantalla, se queda siempre encima y recupera el foco. Se suelta al iniciar
+// sesion o si el servidor se apaga (para no dejar la PC trabada).
+function setLock(active) {
+  if (!mainWindow) return;
+  if (active && !LOGIN_LOCK) active = false;
+  lockActive = active;
+  try {
+    if (active) {
+      mainWindow.setMinimizable(false);
+      mainWindow.setClosable(false);
+      mainWindow.setSkipTaskbar(true);
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      mainWindow.setKiosk(true);
+      mainWindow.moveTop();
+      mainWindow.focus();
+    } else {
+      mainWindow.setKiosk(false);
+      mainWindow.setAlwaysOnTop(false);
+      mainWindow.setVisibleOnAllWorkspaces(false);
+      mainWindow.setSkipTaskbar(false);
+      mainWindow.setMinimizable(true);
+      mainWindow.setClosable(true);
+    }
+  } catch { /* algunas APIs no aplican en todos los SO */ }
 }
 
 // Busca el servidor (IP del archivo o busqueda firmada en la red).
@@ -159,6 +212,7 @@ function setServerOnline(online) {
   offlineConfirmed = true;
   tray?.setToolTip('LabControl Agent - sin servidor: registrando actividad');
   if (!activeSession && mainWindow?.isVisible()) {
+    setLock(false);
     mainWindow.setAlwaysOnTop(false);
     mainWindow.hide();
   }
@@ -405,6 +459,7 @@ function finishLogin(payload) {
   pendingSetup = null;
   activeSession = payload;
   stopPendingLoop();
+  setLock(false);
   mainWindow.setAlwaysOnTop(false);
   mainWindow.webContents.send('login-success', payload);
   startReporting();
