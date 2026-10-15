@@ -332,6 +332,23 @@ button {
   padding: 0;
 }
 
+/* En escritorio la barra lateral queda fija y solo el contenido se desliza. */
+@media(min-width: 761px) {
+  .dashboard {
+    height: 100vh;
+    overflow: hidden;
+  }
+  .workspace {
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .workspace > .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+}
+
 .topbar {
   display: flex;
   align-items: center;
