@@ -11,7 +11,8 @@
     "build:win": "electron-builder --win nsis",
     "build:win-portable": "electron-builder --win portable",
     "users": "node tools/users.js",
-    "vendor": "node tools/fetch-vendor.js"
+    "vendor": "node tools/fetch-vendor.js",
+    "alumnos": "node tools/alumnos.js"
   },
   "engines": {
     "node": ">=18"
