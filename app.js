@@ -694,11 +694,163 @@ function verTodasLasActividades() {
     openView('activity');
 }
 
-// 4. ASISTENTE IA
+// 4. ASISTENTE DE AYUDA (100% local: sin IA, sin internet y sin enviar datos fuera)
+// Basado en la rama asistente-local. Responde que es LabControl, donde esta cada
+// cosa y como usarla, y resume la actividad con los datos que el panel ya tiene.
 const aiPanel = document.querySelector('#ai-panel');
 const aiMessages = document.querySelector('#ai-messages');
 const aiInput = document.querySelector('#ai-input');
-const AI_API_URL = window.LABCONTROL_API_URL || 'https://labcontrol-ai-server.vercel.app/api/chat';
+const LIVE_DATA = Boolean(AGENT_API_URL);
+
+const viewNames = {
+  dashboard: 'Inicio',
+  activity: 'Sesiones',
+  report: 'Reportes',
+  students: 'Usuarios',
+  settings: 'Configuración'
+};
+
+function normalizeText(text) {
+  return String(text)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[¿?¡!.,;:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Palabras que indican que la persona pide ayuda sobre el uso del sistema.
+const helpCues = [
+  'que es', 'para que', 'sirve', 'que hace', 'que hago', 'como', 'donde', 'ayuda', 'usar', 'uso ',
+  'funciona', 'encuentro', 'encontrar', 'veo', 'ver ', 'puedo', 'se hace', 'explica', 'explicame',
+  'significa', 'que muestra', 'que tiene', 'hay en', 'para que es', 'pasa si', 'por que'
+];
+
+const helpTopics = [
+  {
+    id: 'logout',
+    keys: ['cerrar sesion', 'cierro sesion', 'cierro', 'cerrar', 'salgo', 'inicio sesion', 'inicio de sesion', 'salir', 'iniciar sesion', 'login', 'contrasena', 'entrar'],
+    answer: () => `**Iniciar y cerrar sesión**\nPara entrar al panel usa tu **usuario y contraseña de maestro**. Si no los tienes o los olvidaste, pídeselos al coordinador del laboratorio.\nPara salir, pulsa **Cerrar sesión** en el menú lateral. Por seguridad, si recargas la página tendrás que entrar de nuevo.`
+  },
+  {
+    id: 'about',
+    keys: ['labcontrol', 'lab control', 'sistema', 'proyecto', 'plataforma', 'pagina', 'aplicacion', 'portal', 'esto'],
+    answer: () => `**LabControl** sirve para **supervisar el uso responsable de las computadoras del laboratorio**.\n\nCon él puedes:\n• Ver qué aplicación usa cada estudiante y durante cuánto tiempo.\n• Detectar actividades **no permitidas** (juegos, videos, redes sociales).\n• Elegir entre **Solo alertas** o **Bloqueo activo**.\n• Revisar reportes, incluida la actividad registrada cuando el servidor estaba apagado.\n\nNo registra contraseñas, mensajes ni teclas.`
+  },
+  {
+    id: 'dashboard',
+    keys: ['inicio', 'resumen', 'panel', 'tarjetas', 'metricas', 'grafica', 'uso academico', 'actualizar', 'equipos conectados', 'tiempo por aplicacion'],
+    view: 'dashboard',
+    answer: () => `**Inicio** es la pantalla principal. Ahí encuentras:\n• **Tarjetas** con las sesiones activas, los equipos conectados, las alertas y el porcentaje de uso académico.\n• **Actividad reciente**: estudiante, equipo, aplicación, tiempo y estado.\n• **Tiempo por aplicación**: una gráfica con los minutos de cada programa.\n\nLos datos se actualizan solos cada 5 segundos.`
+  },
+  {
+    id: 'activity',
+    keys: ['sesiones', 'actividad', 'actividades', 'tabla', 'historial', 'que estan haciendo', 'que usan', 'login pendiente'],
+    view: 'activity',
+    answer: () => `En **Sesiones** está la tabla completa: **estudiante**, **equipo**, **aplicación**, **tiempo** y **estado**.\n• **Permitido**: uso académico o autorizado.\n• **No permitido**: actividad que conviene revisar.\n• **Requiere login**: la PC está prendida pero el alumno aún no inicia sesión en LabControl.`
+  },
+  {
+    id: 'report',
+    keys: ['reporte', 'reportes', 'imprimir', 'impresion', 'imprimo', 'pdf', 'informe'],
+    view: 'report',
+    answer: () => `En **Reportes**:\n1. Elige al estudiante en el selector de arriba.\n2. Revisa su **sesión total** y las aplicaciones que más usó.\n3. Pulsa **Imprimir** para imprimirlo o guardarlo como PDF.\n\nAbajo está **Actividad sin conexión**, con lo que registraron las PCs mientras el servidor estaba apagado.`
+  },
+  {
+    id: 'offline',
+    keys: ['sin conexion', 'sin servidor', 'servidor apagado', 'apagado', 'offline', 'registro', 'alterada', 'faltan entradas', 'reiniciado', 'integro'],
+    view: 'report',
+    answer: () => `Si el servidor está apagado, las PCs **se usan normal y no bloquean nada**, pero guardan qué aplicaciones se abrieron. Cuando el servidor vuelve, lo envían y aparece en **Reportes > Actividad sin conexión**.\n\nComo sin servidor no hay inicio de sesión, esa actividad se identifica por **PC y usuario de Windows**.\nSi ves **alterada**, **faltan entradas** o **registro reiniciado**, alguien pudo modificar o borrar el registro de esa PC.`
+  },
+  {
+    id: 'internet',
+    keys: ['internet', 'sin red', 'wifi', 'red'],
+    answer: () => `LabControl **no necesita internet**. Las PCs, el servidor y tu laptop se comunican por la red del laboratorio. Si se cae el internet pero el router sigue prendido, todo funciona igual. Este asistente también funciona sin internet.`
+  },
+  {
+    id: 'students',
+    keys: ['usuarios', 'usuario', 'estudiantes', 'estudiante', 'alumnos', 'alumno', 'lista', 'cuentas', 'cuenta'],
+    view: 'students',
+    answer: () => `En **Usuarios** ves a los estudiantes con el equipo que usan y su estado:\n• **Sesión activa**: todo en orden.\n• **Alerta pendiente**: tiene una actividad por revisar.\n\nLas cuentas de alumnos y maestros las da de alta el coordinador del laboratorio.`
+  },
+  {
+    id: 'settings',
+    keys: ['configuracion', 'configurar', 'ajustes', 'ajustar', 'bloqueo', 'bloquear', 'solo alertas', 'regla', 'reglas', 'prohibir', 'pagina prohibida', 'dominio'],
+    view: 'settings',
+    answer: () => `En **Configuración** ajustas las reglas del laboratorio:\n• **Solo alertas**: el panel avisa, pero no se cierra nada.\n• **Bloqueo activo**: la PC cierra la pestaña o la aplicación no permitida.\n• **Agregar regla**: escribe un dominio (youtube.com), un sufijo (.io) o una palabra para prohibirla.\n\nCada cambio queda registrado con tu usuario.`
+  },
+  {
+    id: 'exceptions',
+    keys: ['excepcion', 'excepciones', 'permitir', 'desbloquear', 'autorizar'],
+    view: 'settings',
+    answer: () => `Una **excepción** permite algo que normalmente está prohibido, por ejemplo **YouTube** para una clase que lo necesita.\nSe activa y se quita en **Configuración**. Queda visible en la lista de excepciones y registrada con tu usuario.`
+  },
+  {
+    id: 'alerts',
+    keys: ['alerta', 'alertas', 'no permitido', 'no permitida', 'rojo', 'advertencia'],
+    view: 'activity',
+    answer: () => {
+      const alerts = activities.filter(activity => !activity.allowed && activity.sessionId !== null);
+      const now = alerts.length
+        ? `Ahora mismo hay **${alerts.length}**: ${alerts.map(a => `${a.name} (${a.app})`).join(', ')}.`
+        : 'Ahora mismo **no hay alertas**.';
+      return `Una **alerta** aparece cuando un estudiante usa algo **no permitido** (juegos, videos o una página prohibida). Se ven en la tarjeta **Alertas** de Inicio y en **Sesiones**, marcadas como No permitido.\n\n${now}`;
+    }
+  },
+  {
+    id: 'assistant',
+    keys: ['asistente', 'ia', 'inteligencia artificial', 'chat', 'bot'],
+    answer: () => `Soy el **asistente de ayuda de LabControl**. Puedo explicarte cómo usar cada sección, decirte dónde encontrar algo y resumir la actividad del laboratorio.\n\nNo soy una inteligencia artificial: respondo con información guardada en el panel. Funciono sin internet y no envío datos a ningún lado.`
+  },
+  {
+    id: 'privacy',
+    keys: ['privacidad', 'privado', 'ficticio', 'ficticios', 'reales', 'teclas', 'espia', 'espiar', 'seguro', 'seguridad', 'transparente'],
+    answer: () => `LabControl muestra **qué aplicación o ventana** usa cada PC y durante cuánto tiempo. **No registra contraseñas, mensajes, teclas ni contenido privado.**\nLas reglas y excepciones solo las cambia un maestro con sesión, y cada cambio queda registrado.${LIVE_DATA ? '' : '\n\nEsta es una demostración: los datos que ves son ficticios.'}`
+  },
+  {
+    id: 'mobile',
+    keys: ['celular', 'movil', 'telefono', 'tablet', 'laptop'],
+    answer: () => `Puedes abrir el panel desde tu laptop, tablet o celular, siempre que estés conectado a **la red del laboratorio**. En pantallas pequeñas el menú aparece abajo.`
+  }
+];
+
+const helpMenu = `Puedo ayudarte con:\n• **¿Qué es LabControl?** y para qué sirve.\n• **Dónde ver** sesiones, alertas, reportes o usuarios.\n• **Cómo** bloquear páginas, poner excepciones o imprimir un reporte.\n• **Resumir** la actividad o **detectar alertas**.\n\nEscribe tu pregunta o usa los botones de abajo.`;
+
+function localHelp(question) {
+  const q = normalizeText(question);
+  const padded = ` ${q} `;
+  const words = q.split(' ').filter(Boolean);
+
+  if (/^(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|que tal)\b/.test(q) && words.length <= 4) {
+    return { text: `¡Hola! Soy el asistente de LabControl. ${helpMenu}` };
+  }
+  if (/^(ayuda|help|menu|opciones)$/.test(q) || q.includes('que puedes hacer') || q.includes('en que me ayudas')) {
+    return { text: helpMenu };
+  }
+  if (/^(gracias|muchas gracias|ok|vale|perfecto)$/.test(q)) {
+    return { text: '¡Con gusto! Si tienes otra duda sobre LabControl, aquí estoy.' };
+  }
+  if (/\b(que|quien) eres\b/.test(q) || q.includes('como te llamas')) {
+    return { text: helpTopics.find(topic => topic.id === 'assistant').answer() };
+  }
+
+  const hasCue = helpCues.some(cue => padded.includes(` ${cue}`));
+  if (!hasCue) return null;
+
+  // El tema con la coincidencia mas especifica (la frase mas larga) gana.
+  let best = null;
+  let bestScore = 0;
+  helpTopics.forEach(topic => {
+    topic.keys.forEach(key => {
+      if (padded.includes(` ${key} `) && key.length > bestScore) {
+        best = topic;
+        bestScore = key.length;
+      }
+    });
+  });
+  if (!best) return null;
+  return { text: best.answer(), view: best.view };
+}
 
 function formatAiText(text) {
   return String(text)
@@ -711,55 +863,73 @@ function formatAiText(text) {
     .replace(/\n/g, '<br>');
 }
 
-function addAiMessage(text, role = 'assistant') {
-  aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${formatAiText(text)}</div>`);
+function actionButton(view) {
+  if (!view || !viewNames[view]) return '';
+  return `<br><button type="button" class="ai-action" data-go="${view}">Ir a ${viewNames[view]} →</button>`;
+}
+
+function addAiMessage(text, role = 'assistant', view) {
+  aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${formatAiText(text)}${actionButton(view)}</div>`);
   aiMessages.scrollTop = aiMessages.scrollHeight;
 }
 
-function answerAi(question) {
-  const normalized = question.toLowerCase();
-  const alerts = activities.filter(activity => !activity.allowed);
-  const academic = activities.filter(activity => activity.allowed);
+// Respuestas calculadas con los datos que el panel tiene en este momento.
+const dataKeywords = ['resum', 'alerta', 'revis', 'modulo', 'categor', 'quien', 'detect', 'como va', 'estado del laboratorio', 'hoy'];
 
-  if (normalized.includes('alerta') || normalized.includes('revis')) {
-    return `Detecté **${alerts.length} alerta pendiente**: ${alerts.map(activity => `${activity.name} en ${activity.pc} usó ${activity.app} durante ${activity.time}`).join('. ')}. Recomiendo revisarla con el docente antes de tomar una decisión.`;
+function answerAi(question) {
+  const normalized = normalizeText(question);
+  const withSession = activities.filter(activity => activity.sessionId !== null);
+  const pending = activities.length - withSession.length;
+  const alerts = withSession.filter(activity => !activity.allowed);
+  const allowed = withSession.filter(activity => activity.allowed);
+  const source = LIVE_DATA ? '' : ' (datos de demostración)';
+
+  if (!activities.length) {
+    return 'Todavía no hay equipos reportando. Cuando las PCs del laboratorio inicien sesión, aquí podré resumir su actividad.';
   }
-  if (normalized.includes('módulo') || normalized.includes('modulo') || normalized.includes('categor')) {
-    return `**Módulos identificados:**\nAcadémico: Microsoft Word y PowerPoint (${academic.length} sesiones permitidas).\nNavegación: Google Chrome (uso permitido en la demo).\nEntretenimiento: Minecraft, marcado para revisar. Estos módulos ayudan a explicar el panel sin revisar contenido privado.`;
+  if (normalized.includes('alerta') || normalized.includes('revis') || normalized.includes('detect')) {
+    if (!alerts.length) return `No hay alertas en este momento${source}. Todas las sesiones activas tienen uso permitido.`;
+    return `Detecté **${alerts.length} ${alerts.length === 1 ? 'alerta' : 'alertas'}**${source}: ${alerts.map(a => `${a.name} en ${a.pc} usa ${a.app} (${a.time})`).join('; ')}. Conviene revisarlas antes de tomar una decisión.`;
+  }
+  if (normalized.includes('modulo') || normalized.includes('categor')) {
+    const academic = [...new Set(allowed.map(a => a.app))];
+    const flagged = [...new Set(alerts.map(a => a.app))];
+    return `**Uso por tipo**${source}:\n• **Permitido:** ${academic.length ? academic.join(', ') : 'ninguno por ahora'}.\n• **Para revisar:** ${flagged.length ? flagged.join(', ') : 'nada por ahora'}.`;
   }
   if (normalized.includes('quien') || normalized.includes('alumno') || normalized.includes('estudiante')) {
-    return `La actividad que requiere atención es la de **Sofia Torres** en ${alerts[0].pc}, por ${alerts[0].app}. El resto de las sesiones visibles están clasificadas como permitidas.`;
+    if (!alerts.length) return `Ningún estudiante requiere atención ahora${source}.`;
+    return `Requieren atención${source}: ${alerts.map(a => `**${a.name}** (${a.pc}, ${a.app})`).join(', ')}. El resto de las sesiones tienen uso permitido.`;
   }
-  return `Resumen del laboratorio: hay **12 sesiones activas**, 18 equipos conectados y 86% de uso académico en los datos de demostración. ${academic.map(activity => `${activity.name} usa ${activity.app}`).join(', ')}. ${alerts.length ? `Hay ${alerts.length} actividad marcada para revisar: ${alerts[0].app}.` : ''}`;
+  return `**Resumen del laboratorio**${source}: ${withSession.length} ${withSession.length === 1 ? 'sesión activa' : 'sesiones activas'}, ${allowed.length} con uso permitido y ${alerts.length} para revisar${alerts.length ? ` (${alerts.map(a => `${a.name} con ${a.app}`).join(', ')})` : ''}.${pending ? ` Además, ${pending} ${pending === 1 ? 'PC espera' : 'PCs esperan'} que el alumno inicie sesión.` : ''}`;
 }
 
-async function askAi(question) {
+function askAi(question) {
   const cleanQuestion = question.trim();
   if (!cleanQuestion) return;
   addAiMessage(cleanQuestion, 'user');
-  if (!AI_API_URL) {
-    window.setTimeout(() => addAiMessage(answerAi(cleanQuestion)), 260);
-    return;
-  }
 
-  const loading = document.createElement('div');
-  loading.className = 'ai-message';
-  loading.textContent = 'Analizando la actividad...';
-  aiMessages.append(loading);
-  aiMessages.scrollTop = aiMessages.scrollHeight;
-  try {
-    const response = await fetch(AI_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: cleanQuestion, activities })
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || 'No fue posible contactar al asistente.');
-    loading.innerHTML = formatAiText(payload.reply);
-  } catch (error) {
-    loading.textContent = `${error.message} La demo local seguira disponible.`;
+  let reply;
+  const help = localHelp(cleanQuestion);
+  if (help) {
+    reply = help;
+  } else if (dataKeywords.some(key => normalizeText(cleanQuestion).includes(key))) {
+    reply = { text: answerAi(cleanQuestion) };
+  } else {
+    reply = { text: `No estoy seguro de haber entendido tu pregunta. ${helpMenu}` };
   }
+  window.setTimeout(() => addAiMessage(reply.text, 'assistant', reply.view), 260);
 }
+
+// Botones "Ir a ..." dentro de las respuestas.
+aiMessages?.addEventListener('click', event => {
+  const button = event.target.closest('[data-go]');
+  if (!button) return;
+  openView(button.dataset.go);
+  if (window.innerWidth <= 760) {
+    aiPanel.classList.remove('open');
+    aiPanel.setAttribute('aria-hidden', 'true');
+  }
+});
 
 const aiToggle = document.querySelector('#ai-toggle');
 const aiClose = document.querySelector('#ai-close');
@@ -770,7 +940,7 @@ if (aiToggle) {
     aiPanel.classList.add('open');
     aiPanel.setAttribute('aria-hidden', 'false');
     if (!aiMessages.children.length) {
-      addAiMessage('Hola, soy el asistente de LabControl. Puedo resumir la actividad, detectar alertas e identificar módulos de uso.');
+      addAiMessage('Hola, soy el asistente de LabControl. Puedo explicarte cómo usar el panel, decirte dónde encontrar cada cosa, resumir la actividad y detectar alertas.');
     }
     if (aiInput) aiInput.focus();
   });

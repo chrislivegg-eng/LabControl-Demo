@@ -193,7 +193,7 @@ Antes de distribuir el instalador:
 5. Probar desde dos o tres PCs.
 6. Despues instalar en todas las PCs autorizadas.
 
-Si se va el acceso a internet, las PCs siguen comunicandose por Ethernet o Wi-Fi mientras permanezcan en la misma red local y el router o switch siga encendido. El panel usa copias locales de Tailwind y Chart.js (`npm run vendor`, que `Iniciar servidor` ejecuta solo la primera vez), asi que funciona sin internet. Solo el asistente de IA remoto necesita internet; sin el, usa respuestas locales.
+Si se va el acceso a internet, las PCs siguen comunicandose por Ethernet o Wi-Fi mientras permanezcan en la misma red local y el router o switch siga encendido. El panel usa copias locales de Tailwind y Chart.js (`npm run vendor`, que `Iniciar servidor` ejecuta solo la primera vez), asi que funciona sin internet. El asistente de ayuda es local y tampoco necesita internet.
 
 ## 7. Reglas de bloqueo
 
@@ -337,18 +337,15 @@ No se pudo compilar el `.exe` desde el entorno de desarrollo en la nube; se comp
 
 La validacion del servidor no sustituye la prueba del agente empaquetado en Windows real.
 
-## 13. Asistente de IA
+## 13. Asistente de ayuda
 
-Archivo cliente: `api/chat.js`.
+El asistente es **100% local**: no usa IA, no necesita internet y no envia datos fuera del panel. Esta en `app.js` (seccion 4) y se basa en la rama `asistente-local`.
 
-El panel puede usar un endpoint remoto de Gemini. La clave debe permanecer en el servidor, nunca en el navegador ni en Git.
+- Responde dudas de uso por temas: que es LabControl, inicio de sesion, sesiones, alertas, reportes, actividad sin conexion, bloqueo, reglas, excepciones, internet y privacidad. Cada respuesta puede incluir un boton "Ir a ..." a la seccion.
+- Resume la actividad, detecta alertas y agrupa el uso con los datos que el panel ya tiene: en vivo con el servidor y de demostracion en la demo estatica.
+- Si no entiende la pregunta, muestra el menu de temas.
 
-Variables esperadas:
-
-- `GEMINI_API_KEY`: obligatoria para el servicio remoto.
-- `GEMINI_MODEL`: opcional.
-
-El cliente tiene un respaldo local por reglas cuando la consulta remota falla. Sin internet, la parte remota y las dependencias CDN pueden fallar, pero el panel local y el puente LAN deben separarse de esa dependencia.
+Se elimino `api/chat.js` (Gemini). Para agregar un tema nuevo, se suma una entrada a `helpTopics` en `app.js`.
 
 ## 14. Clases y grupos
 

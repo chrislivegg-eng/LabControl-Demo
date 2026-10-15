@@ -65,7 +65,7 @@ LabControl **no necesita internet**: las PCs, el servidor y las laptops se comun
 
 El panel usa Tailwind y Chart.js. `Iniciar servidor` descarga una copia local la primera vez que hay internet (`npm run vendor`, en `assets/vendor/`); despues el panel ya no depende de internet. Si la copia no existe, se usan los CDN.
 
-Lo unico que si necesita internet es el asistente de IA remoto. Sin internet, usa sus respuestas locales.
+El asistente de ayuda del panel es local (sin IA), asi que tampoco necesita internet.
 
 ### Si el servidor esta apagado
 

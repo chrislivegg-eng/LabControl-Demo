@@ -811,6 +811,28 @@ td:first-child {
   font-weight: 800;
 }
 
+.ai-action {
+  margin-top: 8px;
+  border: 1px solid #f46a2b;
+  border-radius: 20px;
+  background: rgba(244, 106, 43, .12);
+  color: #ffd7c4;
+  padding: 6px 12px;
+  font-size: .72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+
+.ai-action:hover {
+  background: rgba(244, 106, 43, .28);
+}
+
+.ai-action:focus-visible {
+  outline: 2px solid #f46a2b;
+  outline-offset: 2px;
+}
+
 .ai-suggestions {
   display: flex;
   flex-wrap: wrap;
