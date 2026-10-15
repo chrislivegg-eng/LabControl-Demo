@@ -187,6 +187,15 @@ const RULES_API_URL = AGENT_API_URL ? '/api/lab/rules' : '';
 const RULES_EXCEPTION_API_URL = AGENT_API_URL ? '/api/lab/rules/exception' : '';
 const TEACHER_LOGIN_API_URL = AGENT_API_URL ? '/api/teacher/login' : '';
 let activeTeacher = null;
+// Con el servidor del laboratorio el panel no es una demo: se ajustan los textos.
+if (AGENT_API_URL) {
+  document.title = 'LabControl';
+  const eyebrow = document.querySelector('#topbar-eyebrow');
+  if (eyebrow) eyebrow.textContent = 'COLEGIO CIUDADANO · LABORATORIO';
+  const loginNote = document.querySelector('#login-message');
+  if (loginNote) loginNote.textContent = 'LabControl no registra contraseñas, mensajes ni teclas.';
+}
+
 // El token vive solo en memoria: al recargar la pagina hay que volver a entrar.
 let teacherToken = '';
 
@@ -576,10 +585,7 @@ async function loadOfflineReport() {
 
 document.querySelector('#offline-refresh')?.addEventListener('click', loadOfflineReport);
 
-// --- Grupos y alumnos registrados (con el servidor del laboratorio) ---
-const CLASSES_API_URL = AGENT_API_URL ? '/api/lab/classes' : '';
-const groupFilterLabel = document.querySelector('.group-filter');
-const groupFilter = document.querySelector('#group-filter');
+// --- Alumnos registrados (con el servidor del laboratorio) ---
 const roster = document.querySelector('#roster');
 const rosterBody = document.querySelector('#roster-body');
 const rosterSearch = document.querySelector('#roster-search');
@@ -597,51 +603,15 @@ function plainText(value) {
   return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-function renderGroupOptions({ classes = [], activeClassId = '' }) {
-  if (!groupFilter) return;
-  groupFilter.innerHTML = '<option value="">Todos los grupos</option>' + classes.map(group =>
-    `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)} (${group.students})</option>`).join('');
-  groupFilter.value = activeClassId;
-  if (groupFilterLabel) groupFilterLabel.hidden = !classes.length;
-}
-
-async function loadGroups() {
-  if (!CLASSES_API_URL || !teacherToken) return;
-  try {
-    const response = await teacherFetch(CLASSES_API_URL);
-    const payload = await response.json();
-    if (response.ok) renderGroupOptions(payload);
-  } catch { /* el selector se queda en "Todos los grupos" */ }
-}
-
-groupFilter?.addEventListener('change', async () => {
-  try {
-    const response = await teacherFetch(`${CLASSES_API_URL}/active`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ classId: groupFilter.value })
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || 'No se pudo cambiar el grupo.');
-    renderGroupOptions(payload);
-    refreshAgentData();
-    renderRoster();
-    if (document.querySelector('#report-page')?.classList.contains('active')) loadOfflineReport();
-  } catch (error) {
-    showLabToast({ title: 'Grupo sin cambiar', message: error.message, type: 'warning' });
-  }
-});
-
 function renderRoster() {
   if (!rosterBody) return;
   const query = plainText(rosterSearch?.value);
-  const group = groupFilter?.value || '';
   const live = new Map(activities.filter(item => item.matricula).map(item => [item.matricula, item]));
-  const list = rosterStudents.filter(student => (!group || student.group === group)
-    && (!query || plainText(`${student.name} ${student.matricula}`).includes(query)));
+  const list = rosterStudents.filter(student => !query
+    || plainText(`${student.name} ${student.matricula} ${student.group}`).includes(query));
 
   if (rosterCount) {
-    rosterCount.textContent = `${list.length} ${list.length === 1 ? 'alumno' : 'alumnos'}${group ? ` · ${group}` : ''}`;
+    rosterCount.textContent = `${list.length} ${list.length === 1 ? 'alumno' : 'alumnos'}`;
   }
   if (!list.length) {
     rosterBody.innerHTML = `<tr><td colspan="5" class="py-6 px-2 text-gray-400">${rosterStudents.length ? 'Ningún alumno coincide con la búsqueda.' : 'Todavía no hay alumnos. El coordinador los importa con npm run alumnos.'}</td></tr>`;
@@ -671,7 +641,6 @@ async function loadRoster() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || 'No se pudo leer la lista de alumnos.');
     rosterStudents = payload.students || [];
-    renderGroupOptions(payload);
     renderRoster();
   } catch (error) {
     if (rosterBody) rosterBody.innerHTML = `<tr><td colspan="5" class="py-6 px-2 text-red-600">${escapeHtml(error.message)}</td></tr>`;
@@ -768,7 +737,6 @@ document.querySelector('#login-form').addEventListener('submit', async event => 
       if (passwordInput) passwordInput.value = '';
       refreshAgentData();
       loadRulesPanel();
-      loadGroups();
       loadRoster();
     } else {
       activeTeacher = { displayName: usernameInput?.value || 'Docente Demo', role: 'teacher' };
@@ -795,7 +763,6 @@ function endTeacherSession(message) {
   setTeacherToken('');
   rosterStudents = [];
   if (rosterCode) { rosterCode.hidden = true; rosterCode.innerHTML = ''; }
-  if (groupFilterLabel) groupFilterLabel.hidden = true;
   document.querySelector('#dashboard-view').classList.add('hidden');
   document.querySelector('#login-view').classList.remove('hidden');
   const loginMessage = document.querySelector('#login-message');
@@ -920,8 +887,9 @@ const helpTopics = [
   },
   {
     id: 'groups',
-    keys: ['grupo', 'grupos', 'clase', 'clases', 'carrera', 'filtrar', 'filtro'],
-    answer: () => `Arriba, junto al estado del servidor, está el selector **Grupo**. Al elegir uno, el panel muestra solo a los alumnos de ese grupo en Inicio, Sesiones, Usuarios y el reporte sin conexión.\nEl grupo de cada alumno viene de la lista de la escuela que importa el coordinador. Las PCs que todavía no inician sesión solo se ven en **Todos los grupos**.`
+    keys: ['grupo', 'grupos', 'clase', 'clases', 'carrera'],
+    view: 'students',
+    answer: () => `El **grupo** de cada alumno aparece debajo de su nombre, junto a su matrícula, en Inicio, Sesiones y Usuarios. Viene de la lista de la escuela que importa el coordinador.\nEn **Usuarios** puedes escribir el grupo en el buscador para ver solo a sus alumnos.`
   },
   {
     id: 'report',

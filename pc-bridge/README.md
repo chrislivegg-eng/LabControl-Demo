@@ -156,7 +156,7 @@ Las contrasenas y los codigos se guardan con scrypt y salt, nunca en texto plano
 
 ### Grupos en el panel
 
-El selector **Grupo** de la barra superior filtra Inicio, Sesiones, Usuarios y el reporte sin conexion. Los grupos salen de la columna "grupo" de los alumnos; no hay que crearlos aparte. Las PCs que aun no inician sesion solo aparecen en "Todos los grupos".
+El grupo de cada alumno aparece debajo de su nombre, junto a la matricula, en Inicio, Sesiones y Usuarios. Sale de la columna "grupo" del Excel; no hay que crearlo aparte. En **Usuarios**, el buscador encuentra por nombre, matricula o grupo.
 
 ## 3. Instalador para las PCs de alumnos
 

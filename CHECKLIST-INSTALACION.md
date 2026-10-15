@@ -39,7 +39,7 @@ Panel en **Solo alertas** durante toda esta seccion.
 - [ ] Primera vez: matricula + codigo de activacion. La app pide crear contrasena. Despues se entra con matricula + contrasena.
 - [ ] El codigo ya usado no vuelve a funcionar.
 - [ ] En el panel, **Usuarios > Restablecer** da un codigo nuevo; la contrasena anterior deja de servir y el alumno crea otra.
-- [ ] El selector **Grupo** muestra solo a los alumnos de ese grupo.
+- [ ] Cada alumno aparece con su nombre y, debajo, su matricula y grupo.
 - [ ] Despues del login correcto, la ventana se oculta y el panel muestra el nombre del alumno.
 - [ ] Abrir Word: en unos 5 segundos el panel lo muestra como Permitido.
 - [ ] Abrir YouTube en Chrome o Edge: el panel lo marca como No permitido.

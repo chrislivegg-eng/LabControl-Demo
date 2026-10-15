@@ -1283,32 +1283,6 @@ td:first-child {
   letter-spacing: .02em;
 }
 
-.group-filter {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  border: 1px solid #e7ded6;
-  border-radius: 8px;
-  background: #fff;
-  padding: 0 4px 0 12px;
-  color: #7c6f66;
-  font-size: .74rem;
-  font-weight: 800;
-}
-
-.group-filter select {
-  max-width: 220px;
-  border: 0;
-  background: transparent;
-  color: #1f1b18;
-  font-size: .8rem;
-  font-weight: 700;
-  padding: 8px 6px;
-  cursor: pointer;
-}
-
-.group-filter select:focus-visible,
 .roster-search input:focus-visible,
 .roster-reset:focus-visible {
   outline: 2px solid #f97316;
@@ -1395,10 +1369,4 @@ td:first-child {
 .roster-code-note {
   color: #7c2d12;
   font-size: .78rem;
-}
-
-@media (max-width: 760px) {
-  .group-filter select {
-    max-width: 140px;
-  }
 }

@@ -205,7 +205,6 @@ async function handleTeacherLogin(request, response) {
       username: user.username,
       displayName: user.displayName,
       role: user.role,
-      activeClassId: '',
       expiresAt: Date.now() + TEACHER_SESSION_MS
     });
     await appendAudit({ event: 'teacher-login', username: user.username });
@@ -331,7 +330,7 @@ async function handleStudentList(teacher, response) {
     const users = await loadUsers();
     const students = users.filter(user => user.role === 'student').map(user => publicStudent(user))
       .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
-    sendJson(response, 200, { ok: true, students, ...groupsPayload(teacher, users) });
+    sendJson(response, 200, { ok: true, students });
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
   }
@@ -632,55 +631,7 @@ async function handleOfflineSummary(teacher, response) {
       const decision = getBlockDecision({ app, windowTitle: entry.title, processName: entry.processName }, rules);
       return { ...decision, app };
     });
-    const users = await loadUsers();
-    const group = activeGroupFor(teacher, users);
-    if (group) {
-      const members = new Set(users.filter(user => user.group === group.id).map(user => user.username));
-      summary.pcs = summary.pcs.filter(pc => pc.students.some(student => members.has(student)));
-    }
-    summary.activeClass = group ? { id: group.id, name: group.name } : null;
     sendJson(response, 200, summary);
-  } catch (error) {
-    sendJson(response, 500, { ok: false, error: error.message });
-  }
-}
-
-// --- Grupos (salen de la columna "grupo" de cada cuenta de alumno) ---
-function studentGroups(users) {
-  const counts = new Map();
-  for (const user of users) {
-    if (user.role !== 'student' || !user.group) continue;
-    counts.set(user.group, (counts.get(user.group) || 0) + 1);
-  }
-  return [...counts].map(([name, students]) => ({ id: name, name, students }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-}
-
-// Grupo activo del maestro, solo si todavia existe.
-function activeGroupFor(teacher, users) {
-  if (!teacher?.activeClassId) return null;
-  const group = studentGroups(users).find(item => item.id === teacher.activeClassId);
-  if (!group) teacher.activeClassId = '';
-  return group || null;
-}
-
-function groupsPayload(teacher, users) {
-  const active = activeGroupFor(teacher, users);
-  return { activeClassId: active ? active.id : '', classes: studentGroups(users) };
-}
-
-async function handleSetActiveClass(teacher, request, response) {
-  try {
-    const body = await readRequestJson(request);
-    const classId = String(body.classId || '');
-    const users = await loadUsers();
-    if (classId && !studentGroups(users).some(group => group.id === classId)) {
-      sendJson(response, 404, { ok: false, error: 'Ese grupo no existe.' });
-      return;
-    }
-    teacher.activeClassId = classId;
-    await appendAudit({ event: 'active-class', username: teacher.username, classId: classId || 'todos' });
-    sendJson(response, 200, { ok: true, ...groupsPayload(teacher, users) });
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
   }
@@ -819,12 +770,9 @@ async function handleExceptionUpdate(request, response) {
   }
 }
 
-function buildStatusPayload(teacher, users) {
-  const group = activeGroupFor(teacher, users);
+function buildStatusPayload(users) {
   const byUsername = new Map(users.map(user => [user.username, user]));
-  // Con un grupo elegido solo se ven sus alumnos; las PCs sin sesion solo en "Todos".
-  const reports = getOnlineReports().filter(report => !group || byUsername.get(report.username)?.group === group.id);
-  const activities = reports.map(report => ({
+  const activities = getOnlineReports().map(report => ({
     name: report.name,
     matricula: report.username ? (byUsername.get(report.username)?.matricula || report.username.toUpperCase()) : '',
     group: byUsername.get(report.username)?.group || '',
@@ -846,7 +794,6 @@ function buildStatusPayload(teacher, users) {
 
   return {
     updatedAt: new Date().toISOString(),
-    activeClass: group ? { id: group.id, name: group.name } : null,
     activities,
     summary: {
       activeSessions: activities.length,
@@ -939,16 +886,7 @@ const server = http.createServer((request, response) => {
     const teacher = requireTeacher(request, response);
     if (!teacher) return;
     loadUsers()
-      .then(users => sendJson(response, 200, buildStatusPayload(teacher, users)))
-      .catch(error => sendJson(response, 500, { ok: false, error: error.message }));
-    return;
-  }
-
-  if (request.method === 'GET' && request.url === '/api/lab/classes') {
-    const teacher = requireTeacher(request, response);
-    if (!teacher) return;
-    loadUsers()
-      .then(users => sendJson(response, 200, { ok: true, ...groupsPayload(teacher, users) }))
+      .then(users => sendJson(response, 200, buildStatusPayload(users)))
       .catch(error => sendJson(response, 500, { ok: false, error: error.message }));
     return;
   }
@@ -969,13 +907,6 @@ const server = http.createServer((request, response) => {
 
   if (request.method === 'POST' && request.url === '/api/agent/set-password') {
     handleSetPassword(request, response);
-    return;
-  }
-
-  if (request.method === 'POST' && request.url === '/api/lab/classes/active') {
-    const teacher = requireTeacher(request, response);
-    if (!teacher) return;
-    handleSetActiveClass(teacher, request, response);
     return;
   }
 

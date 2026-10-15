@@ -109,14 +109,10 @@
           <!-- BARRA SUPERIOR -->
           <header class="topbar w-full">
             <div>
-              <p class="eyebrow">COLEGIO CIUDADANO · DEMO</p>
+              <p class="eyebrow" id="topbar-eyebrow">COLEGIO CIUDADANO · DEMO</p>
               <h2 id="page-title">Resumen del laboratorio</h2>
             </div>
             <div class="topbar-actions">
-              <label class="group-filter" for="group-filter" hidden>
-                <span>Grupo</span>
-                <select id="group-filter"><option value="">Todos los grupos</option></select>
-              </label>
               <span class="agent-status" id="agent-status">Datos demo</span>
               <button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span>Asistente</button>
             </div>
@@ -301,7 +297,7 @@
                   </div>
                   <label class="roster-search" for="roster-search">
                     <span class="sr-only">Buscar alumno</span>
-                    <input id="roster-search" type="search" placeholder="Buscar por nombre o matrícula" autocomplete="off" />
+                    <input id="roster-search" type="search" placeholder="Buscar por nombre, matrícula o grupo" autocomplete="off" />
                   </label>
                 </div>
                 <div class="roster-code" id="roster-code" role="status" hidden></div>
