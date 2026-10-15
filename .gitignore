@@ -11,3 +11,4 @@ pc-bridge/server/offline-activity.jsonl
 pc-bridge/server/offline-state.json
 pc-bridge/server/servidor.log
 pc-bridge/server/servicio-labcontrol.cmd
+pc-bridge/server/classes.json

@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultPaths, loadOrCreateKeys, startDiscoveryResponder } from './discovery.js';
 import { OfflineStore } from './offline-store.js';
+import { ClassesStore } from './classes-store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const bridgeDir = path.resolve(__dirname, '..');
@@ -204,6 +205,7 @@ async function handleTeacherLogin(request, response) {
       username: user.username,
       displayName: user.displayName,
       role: user.role,
+      activeClassId: '',
       expiresAt: Date.now() + TEACHER_SESSION_MS
     });
     await appendAudit({ event: 'teacher-login', username: user.username });
@@ -541,7 +543,7 @@ async function handleOfflineLog(request, response) {
   }
 }
 
-async function handleOfflineSummary(response) {
+async function handleOfflineSummary(teacher, response) {
   try {
     const rules = await loadRules();
     const summary = offlineStore.summary(entry => {
@@ -549,7 +551,54 @@ async function handleOfflineSummary(response) {
       const decision = getBlockDecision({ app, windowTitle: entry.title, processName: entry.processName }, rules);
       return { ...decision, app };
     });
+    const group = activeClassFor(teacher);
+    if (group) {
+      summary.pcs = summary.pcs.filter(pc => ClassesStore.includes(group, { pc: pc.pc })
+        || pc.students.some(student => ClassesStore.includes(group, { username: student })));
+    }
+    summary.activeClass = group ? { id: group.id, name: group.name } : null;
     sendJson(response, 200, summary);
+  } catch (error) {
+    sendJson(response, 500, { ok: false, error: error.message });
+  }
+}
+
+// --- Clases y grupos ---
+const classesStore = new ClassesStore(__dirname);
+
+// Clase activa del maestro, solo si sigue existiendo y le corresponde.
+function activeClassFor(teacher) {
+  if (!teacher?.activeClassId) return null;
+  const group = classesStore.visibleTo(teacher).find(item => item.id === teacher.activeClassId);
+  if (!group) teacher.activeClassId = '';
+  return group || null;
+}
+
+function classesPayload(teacher) {
+  const active = activeClassFor(teacher);
+  return {
+    ok: true,
+    activeClassId: active ? active.id : '',
+    classes: classesStore.visibleTo(teacher).map(group => ({
+      id: group.id,
+      name: group.name,
+      students: group.students.length,
+      pcs: group.pcs.length
+    }))
+  };
+}
+
+async function handleSetActiveClass(teacher, request, response) {
+  try {
+    const body = await readRequestJson(request);
+    const classId = String(body.classId || '');
+    if (classId && !classesStore.visibleTo(teacher).some(group => group.id === classId)) {
+      sendJson(response, 404, { ok: false, error: 'Esa clase no existe o no esta asignada a tu cuenta.' });
+      return;
+    }
+    teacher.activeClassId = classId;
+    await appendAudit({ event: 'active-class', username: teacher.username, classId: classId || 'todas' });
+    sendJson(response, 200, classesPayload(teacher));
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
   }
@@ -688,8 +737,10 @@ async function handleExceptionUpdate(request, response) {
   }
 }
 
-function buildStatusPayload() {
-  const activities = getOnlineReports().map(report => ({
+function buildStatusPayload(teacher) {
+  const group = activeClassFor(teacher);
+  const reports = getOnlineReports().filter(report => ClassesStore.includes(group, report));
+  const activities = reports.map(report => ({
     name: report.name,
     pc: report.pc,
     sessionId: report.sessionId,
@@ -709,6 +760,7 @@ function buildStatusPayload() {
 
   return {
     updatedAt: new Date().toISOString(),
+    activeClass: group ? { id: group.id, name: group.name } : null,
     activities,
     summary: {
       activeSessions: activities.length,
@@ -798,8 +850,23 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === 'GET' && request.url === '/api/lab/status') {
-    if (!requireTeacher(request, response)) return;
-    sendJson(response, 200, buildStatusPayload());
+    const teacher = requireTeacher(request, response);
+    if (!teacher) return;
+    sendJson(response, 200, buildStatusPayload(teacher));
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/api/lab/classes') {
+    const teacher = requireTeacher(request, response);
+    if (!teacher) return;
+    sendJson(response, 200, classesPayload(teacher));
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/api/lab/classes/active') {
+    const teacher = requireTeacher(request, response);
+    if (!teacher) return;
+    handleSetActiveClass(teacher, request, response);
     return;
   }
 
@@ -814,8 +881,9 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === 'GET' && request.url === '/api/lab/offline') {
-    if (!requireTeacher(request, response)) return;
-    handleOfflineSummary(response);
+    const teacher = requireTeacher(request, response);
+    if (!teacher) return;
+    handleOfflineSummary(teacher, response);
     return;
   }
 
