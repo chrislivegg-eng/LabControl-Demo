@@ -118,10 +118,11 @@ function renderLabData(list, summary = {}) {
   if (activityFullBody) activityFullBody.innerHTML = renderActivityRows(list);
   renderStudentsList(students);
 
-  const alertCount = list.filter(item => !item.allowed).length;
-  const academicPercent = list.length ? Math.round((list.length - alertCount) / list.length * 100) : 0;
+  const sessions = list.filter(item => item.sessionId !== null);
+  const alertCount = sessions.filter(item => !item.allowed).length;
+  const academicPercent = sessions.length ? Math.round((sessions.length - alertCount) / sessions.length * 100) : 0;
 
-  if (metricSessions) metricSessions.textContent = summary.activeSessions ?? list.length;
+  if (metricSessions) metricSessions.textContent = summary.activeSessions ?? sessions.length;
   if (metricPcs) metricPcs.textContent = summary.connectedPcs ?? new Set(list.map(item => item.pc)).size;
   if (metricAlerts) metricAlerts.textContent = summary.alerts ?? alertCount;
   if (metricAcademic) metricAcademic.textContent = `${summary.academicUsePercent ?? academicPercent}%`;
@@ -187,8 +188,11 @@ const RULES_API_URL = AGENT_API_URL ? '/api/lab/rules' : '';
 const RULES_EXCEPTION_API_URL = AGENT_API_URL ? '/api/lab/rules/exception' : '';
 const TEACHER_LOGIN_API_URL = AGENT_API_URL ? '/api/teacher/login' : '';
 let activeTeacher = null;
-// Con el servidor del laboratorio el panel no es una demo: se ajustan los textos.
+// Con el servidor del laboratorio el panel no es una demo: se ajustan los textos
+// y se oculta el reporte por alumno de ejemplo (sus datos son inventados).
 if (AGENT_API_URL) {
+  const demoReport = document.querySelector('#report-page > article');
+  if (demoReport) demoReport.hidden = true;
   document.title = 'LabControl';
   const eyebrow = document.querySelector('#topbar-eyebrow');
   if (eyebrow) eyebrow.textContent = 'COLEGIO CIUDADANO · LABORATORIO';
@@ -534,7 +538,8 @@ function renderOfflineReport({ pcs = [] }) {
     return;
   }
   offlineReportBody.innerHTML = pcs.map(pc => {
-    const who = [...pc.students, ...pc.windowsUsers].filter(Boolean).join(', ') || 'Usuario desconocido';
+    const studentLabels = pc.studentNames || pc.students;
+    const who = [...studentLabels, ...pc.windowsUsers.map(user => `Windows: ${user}`)].filter(Boolean).join(', ') || 'Usuario desconocido';
     const integrity = pc.integrityIssues
       ? `<span class="inline-block bg-red-50 text-red-700 border border-red-100 rounded-lg px-2 py-0.5 text-xs font-semibold">${pc.integrityIssues} con posible alteración</span>`
       : '<span class="inline-block bg-green-50 text-green-700 border border-green-100 rounded-lg px-2 py-0.5 text-xs font-semibold">Registro íntegro</span>';

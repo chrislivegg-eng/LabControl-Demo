@@ -22,7 +22,8 @@
     min-height: 100vh;
   }
 
-  aside,
+  /* Oculta el menu lateral, pero no el asistente (que tambien es un <aside>). */
+  aside:not(.ai-panel),
   .sidebar {
     display: none !important;
   }

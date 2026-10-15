@@ -631,6 +631,14 @@ async function handleOfflineSummary(teacher, response) {
       const decision = getBlockDecision({ app, windowTitle: entry.title, processName: entry.processName }, rules);
       return { ...decision, app };
     });
+    const users = await loadUsers();
+    const byUsername = new Map(users.map(user => [user.username, user]));
+    for (const pc of summary.pcs) {
+      pc.studentNames = pc.students.map(username => {
+        const user = byUsername.get(username);
+        return user ? `${user.displayName} (${user.matricula || username.toUpperCase()})` : username;
+      });
+    }
     sendJson(response, 200, summary);
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
@@ -787,16 +795,18 @@ function buildStatusPayload(users) {
   }));
 
   const connectedPcs = new Set(activities.map(activity => activity.pc)).size;
-  const alerts = activities.filter(activity => !activity.allowed).length;
-  const academicUsePercent = activities.length
-    ? Math.round((activities.length - alerts) / activities.length * 100)
+  // Una PC en "Login pendiente" no es una alerta ni una sesion activa.
+  const sessions = activities.filter(activity => activity.sessionId);
+  const alerts = sessions.filter(activity => !activity.allowed).length;
+  const academicUsePercent = sessions.length
+    ? Math.round((sessions.length - alerts) / sessions.length * 100)
     : 0;
 
   return {
     updatedAt: new Date().toISOString(),
     activities,
     summary: {
-      activeSessions: activities.length,
+      activeSessions: sessions.length,
       connectedPcs,
       alerts,
       academicUsePercent
