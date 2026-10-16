@@ -180,11 +180,30 @@ El instalador:
 - Pide permisos de administrador.
 - Instala para todos los usuarios de la PC.
 - Registra el inicio automatico en `HKLM\...\Run`.
+- Crea la tarea programada **"LabControl Agent - Vigilante"** (`build/vigilante.ps1`): si alguien cierra el agente, Windows lo vuelve a abrir en menos de un minuto, y sin sesion vuelve a bloquear la pantalla. Corre en la sesion de cualquier usuario de la PC, sin permisos de administrador, y un alumno con cuenta estandar no la puede borrar. Al desinstalar se borra.
 - Copia la IP a `resources\labcontrol-config.json` dentro de la carpeta de instalacion.
 
 Para cambiar la IP despues, edita ese archivo como administrador y reinicia la PC.
 
 **Las cuentas de alumno en Windows deben ser cuentas estandar, sin permisos de administrador.** Si no lo son, el alumno puede cerrar el agente o desinstalarlo.
+
+### Pantalla de bloqueo y Administrador de tareas
+
+Sin sesion, la app ocupa toda la pantalla, se queda encima de todo y recupera el foco. Pero el agente corre con la cuenta del alumno, y Windows deja que cada usuario cierre sus propios programas. Con el **Administrador de tareas** (Ctrl+Shift+Esc), `taskkill` o PowerShell, un alumno puede cerrarlo. La tarea vigilante lo vuelve a abrir en menos de un minuto, pero en ese tiempo la PC queda libre.
+
+Para cerrar ese hueco, aplica estas politicas **solo a los alumnos** (Windows Pro o Education; Windows Home no tiene el editor de directivas):
+
+1. En la PC, como administrador: Win+R, escribe `mmc` y Enter.
+2. Archivo > Agregar o quitar complemento > **Editor de objetos de directiva de grupo** > Agregar > **Examinar** > pestana **Usuarios** > **No administradores** > Aceptar > Finalizar > Aceptar.
+3. En Configuracion de usuario > Plantillas administrativas > Sistema:
+   - Opciones de Ctrl+Alt+Supr > **Quitar el Administrador de tareas**: Habilitada.
+   - **Impedir el acceso al simbolo del sistema**: Habilitada (y "Deshabilitar tambien el procesamiento de scripts": Si).
+   - **No ejecutar aplicaciones de Windows especificadas**: Habilitada, con `powershell.exe`, `powershell_ise.exe`, `pwsh.exe` y `taskkill.exe`.
+4. Guarda la consola (opcional) y ejecuta `gpupdate /force` o reinicia.
+
+Al ser "No administradores", las cuentas de maestro o de sistemas que sean administradoras siguen usando esas herramientas. Si las PCs estan en el dominio de la escuela, pidele a sistemas que aplique lo mismo por GPO a la unidad organizativa de los alumnos.
+
+Comprobacion: entra con una cuenta de alumno y pulsa Ctrl+Shift+Esc. Debe aparecer "El administrador ha deshabilitado el Administrador de tareas".
 
 ## 4. Bloqueo
 

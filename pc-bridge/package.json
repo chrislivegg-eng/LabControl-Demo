@@ -63,6 +63,10 @@
       {
         "from": "config/labcontrol-config.json",
         "to": "labcontrol-config.json"
+      },
+      {
+        "from": "build/vigilante.ps1",
+        "to": "vigilante.ps1"
       }
     ]
   }

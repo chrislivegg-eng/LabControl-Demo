@@ -13,6 +13,7 @@ Marca cada punto. Si algo falla, anota que paso y toma captura del panel y de cu
 - [ ] Respaldar `pc-bridge/server/discovery-private.pem` fuera del servidor (USB o Drive privado).
 - [ ] Compilar el instalador con `Crear instalador Windows.cmd`, usando el `labcontrol-config.json` que ya tiene la llave.
 - [ ] Confirmar con sistemas que las cuentas de alumno en Windows son **estandar**, sin permisos de administrador.
+- [ ] Aplicar a los alumnos (No administradores) las politicas que quitan el Administrador de tareas, el simbolo del sistema, PowerShell y taskkill (`pc-bridge/README.md`, "Pantalla de bloqueo y Administrador de tareas").
 
 ## B. Servidor
 
@@ -46,6 +47,8 @@ Panel en **Solo alertas** durante toda esta seccion.
 - [ ] Abrir Roblox u otra app de la lista: el panel la marca como No permitida.
 - [ ] Anotar el proceso y el titulo que se ve en el panel para cada prueba.
 - [ ] Intentar cerrar la ventana de LabControl: debe seguir reportando.
+- [ ] Antes del login, con la cuenta del alumno, pulsar Ctrl+Shift+Esc: el Administrador de tareas debe estar deshabilitado.
+- [ ] Como administrador, cerrar "LabControl Agent" desde el Administrador de tareas: en menos de un minuto vuelve a abrirse solo (tarea "LabControl Agent - Vigilante").
 - [ ] En el icono de la bandeja **no** debe existir la opcion "Salir".
 - [ ] Reiniciar el servidor: en unos segundos la app vuelve a pedir login.
 - [ ] Busqueda automatica: en una PC de prueba, cambiar `serverUrl` a una IP que no exista en `C:\Program Files\LabControl Agent\resources\labcontrol-config.json` (como administrador) y reiniciar. La app debe encontrar el servidor sola.

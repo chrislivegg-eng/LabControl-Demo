@@ -279,6 +279,7 @@ Incluye:
 - Acceso directo de escritorio y menu Inicio.
 - Inicio automatico con Windows para todos los usuarios (`HKLM\...\Run`, en `build/installer.nsh`).
 - Sin opcion de salir desde la bandeja y una sola instancia por PC.
+- Tarea programada "LabControl Agent - Vigilante": si cierran el agente, se vuelve a abrir en menos de un minuto.
 
 El instalador ya no incluye el servidor ni `users.json`, para no dejar los hashes de las cuentas en las PCs de alumnos.
 
@@ -397,6 +398,7 @@ El bloqueo desde red es una fase posterior. No depende solo del panel web.
 - Las contrasenas demo estuvieron escritas en commits anteriores al 15 de octubre de 2026. Las cuentas demo nunca deben quedar activas en el laboratorio.
 - Las sesiones viven en memoria: si el servidor se reinicia, alumnos y maestros vuelven a iniciar sesion.
 - Registrar excepciones administrativas (se hace solo en `server/audit.log`).
+- Quitar a los alumnos el Administrador de tareas, el simbolo del sistema, PowerShell y taskkill con directivas locales o de dominio (ver `pc-bridge/README.md`). Sin eso, un alumno puede cerrar el agente y la PC queda libre hasta que la tarea vigilante lo vuelve a abrir.
 - No ocultar actividad ni falsificar aplicaciones.
 - Probar cierres y bloqueo solamente con autorizacion.
 
