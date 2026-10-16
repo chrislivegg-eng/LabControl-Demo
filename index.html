@@ -131,12 +131,11 @@
                   Actualizar datos
                 </button>
 
-                <!-- Selector de Fecha -->
-                <button class="bg-white border border-gray-100 px-4 py-2.5 rounded-xl text-xs sm:text-sm text-gray-700 font-semibold shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition w-full sm:w-auto">
-                  <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  <span id="current-date" class="truncate">Hoy, 4 de septiembre de 2026</span>
-                  <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </button>
+                <!-- Fecha de hoy (solo informativa; los periodos se eligen en Reportes) -->
+                <div class="bg-white border border-gray-100 px-4 py-2.5 rounded-xl text-xs sm:text-sm text-gray-700 font-semibold shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto">
+                  <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  <span id="current-date" class="truncate">Hoy</span>
+                </div>
               </div>
 
               <!-- Grid de Métricas Principales Estilizado -->

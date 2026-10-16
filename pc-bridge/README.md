@@ -222,4 +222,4 @@ Limitaciones conocidas:
 - **La conexion es HTTP, no HTTPS.** Dentro de la red local, las contrasenas viajan sin cifrar. Es aceptable en una red de laboratorio cerrada, pero no se debe exponer el puerto a internet.
 - Las sesiones viven en memoria. Si se reinicia el servidor, los alumnos y el maestro vuelven a iniciar sesion; la app lo pide sola.
 - La URL exacta no se captura: el agente ve el proceso y el titulo de la ventana. Para bloquear por URL completa se necesita una extension administrada de navegador o un filtro en DNS, proxy o firewall.
-- El selector de clases y grupos del panel es visual; no filtra todavia.
+- No hay selector de clase activa: el grupo de cada alumno se muestra y se busca, pero el panel no filtra por clase.

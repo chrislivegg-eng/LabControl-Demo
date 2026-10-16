@@ -24,13 +24,16 @@ let students = [
   ['Lucas Morales', 'PC-LAB-04 · Sesion activa']
 ];
 
-// Actualizar la fecha del dashboard sin el día de la semana
+// Fecha del dashboard sin el día de la semana. Se revisa cada minuto para que
+// cambie sola a medianoche si el panel se queda abierto.
 const dateElement = document.querySelector('#current-date');
-if (dateElement) {
+function updateDashboardDate() {
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  const today = new Date();
-  const formattedDate = today.toLocaleDateString('es-ES', options);
-  dateElement.textContent = `Hoy, ${formattedDate}`;
+  dateElement.textContent = `Hoy, ${new Date().toLocaleDateString('es-ES', options)}`;
+}
+if (dateElement) {
+  updateDashboardDate();
+  setInterval(updateDashboardDate, 60 * 1000);
 }
 
 // Función para generar filas de una lista dada

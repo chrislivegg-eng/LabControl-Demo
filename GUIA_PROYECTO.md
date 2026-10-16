@@ -11,16 +11,20 @@ El objetivo es mostrar sesiones, equipos conectados, actividad actual, alertas, 
 
 ## 2. Estado actual
 
-La rama de trabajo actual es `pc-agent-bridge`. El destino final del codigo es `main`, pero antes de hacer merge se debe probar el agente en una PC Windows real.
+El codigo vive en `main` (repositorio `chrislivegg-eng/LabControl-Demo`). La rama `pc-agent-bridge` se uso para desarrollar el servidor y el agente, y se lleva a `main` despues de la prueba en Windows real del 14 de octubre de 2026 (seccion 12).
 
 Actualmente existe:
 
 - Panel web de LabControl.
-- Servidor local en Node.js.
-- Simulador de varias PCs para pruebas desde Mac.
-- Agente Windows base.
-- App visual de Electron para el agente.
-- Login de alumnos, maestros y administrador.
+- Servidor local en Node.js, con ventana grafica (`Servidor (ventana).cmd`) o como servicio de Windows.
+- Simulador de varias PCs para pruebas sin Windows.
+- Agente Windows de consola (pruebas).
+- App visual de Electron para el agente, con pantalla de bloqueo hasta iniciar sesion.
+- Login de alumnos (matricula y codigo de activacion), maestros y administrador.
+- Alumnos importados desde el Excel de la escuela, con su grupo.
+- Historial de uso por alumno y reportes por periodo.
+- Actividad registrada sin servidor, enviada cuando el servidor vuelve.
+- Busqueda automatica y firmada del servidor en la red local.
 - Reporte de actividad al servidor cada 5 segundos.
 - Dashboard con equipos, sesiones, aplicaciones y estados.
 - Reglas de apps, dominios, sufijos y palabras clave.
@@ -33,15 +37,13 @@ Actualmente existe:
 
 Nota (14 de octubre de 2026): el codigo de `pc-bridge` se recupero del paquete de pruebas de Zapata (rama `pc-agent-bridge`, commit `2c03568`, 12 de septiembre) porque la PC original ya no esta disponible. El simulador, el archivo de configuracion y la documentacion se rehicieron.
 
-No debe considerarse version final hasta comprobar en hardware real:
+Comprobado en Windows real (14 de octubre de 2026, una PC): conexion al servidor, busqueda automatica, login de alumno, aparicion en el panel, deteccion de apps, alertas, excepciones, reportes y bloqueo.
 
-- Conexion de una PC Windows al servidor central.
-- Inicio de sesion con usuario de alumno.
-- Aparicion correcta de la PC en el panel.
-- Deteccion de aplicaciones reales.
-- Bloqueo real de una app autorizadamente seleccionada.
-- Captura de URL exacta en el navegador.
-- Inicio automatico despues de instalar el agente.
+Pendiente:
+
+- Prueba piloto en el laboratorio con varias PCs (`CHECKLIST-INSTALACION.md`), incluido el inicio automatico tras reiniciar.
+- Cargar alumnos y maestros reales y borrar las cuentas demo.
+- La URL exacta del navegador no se captura (seccion 7).
 
 ## 3. Arquitectura
 
@@ -55,7 +57,7 @@ Archivos principales:
 - `mobile.css`: ajustes para pantallas pequenas.
 - `assets/`: logotipo, wordmark, fondo y favicons.
 
-La interfaz es HTML, CSS y JavaScript sin compilacion. Usa Tailwind y Chart.js desde CDN en la demo web. El panel puede abrirse como demo estatica o servirse desde el servidor local para recibir datos reales.
+La interfaz es HTML, CSS y JavaScript sin compilacion. Usa Tailwind y Chart.js: copias locales en `assets/vendor/` (`npm run vendor`, no se suben a Git) y, si no existen, los CDN. El panel puede abrirse como demo estatica o servirse desde el servidor local para recibir datos reales.
 
 ### Servidor local
 
@@ -74,7 +76,7 @@ Funciones principales:
 
 Configuracion por defecto:
 
-- Puerto: `3100`.
+- Puerto: `80` con `Iniciar servidor.cmd` y el servicio (si esta ocupado, `3100`); `3100` con `npm start`. Se cambia con la variable `PORT`.
 - Host: `0.0.0.0`.
 - Ventana de equipo en linea: 15 segundos.
 - Intervalo de reporte: 5 segundos.
@@ -88,12 +90,14 @@ Archivos principales:
 - `pc-bridge/app/renderer.html`: ventana de login del agente.
 - `pc-bridge/app/renderer.js`: comportamiento visual del login.
 - `pc-bridge/app/renderer.css`: estilos de la app Windows.
+- `pc-bridge/app/server-window.js` y `server-ui.html`: ventana grafica del servidor.
+- `pc-bridge/app/icon.ico` y `logo.png`: logo oficial de la ventana, la bandeja y el login.
 
 El agente:
 
 1. Se conecta al servidor configurado.
 2. Reporta la PC como `Sin sesion` si aun no hay login.
-3. Solicita usuario y contrasena.
+3. Bloquea la pantalla y solicita matricula y contrasena (o codigo de activacion la primera vez).
 4. Valida la sesion con el servidor.
 5. Detecta la ventana activa de Windows.
 6. Envia proceso, titulo, PID y tiempo activo.
@@ -118,7 +122,9 @@ Las cuentas demo son solo para pruebas. En el laboratorio deben eliminarse con `
 
 ### Servidor local
 
-Desde la raiz de `pc-bridge`:
+En Windows, doble clic en `pc-bridge/Servidor (ventana).cmd` (ventana con el estado y las direcciones del panel) o en `pc-bridge/Iniciar servidor.cmd` (consola). Usan el puerto 80, asi que el panel queda en `http://127.0.0.1`.
+
+Desde terminal:
 
 ```powershell
 cd pc-bridge
@@ -126,13 +132,11 @@ npm install
 npm start
 ```
 
-Abrir el panel en:
+Con `npm start` el panel queda en `http://127.0.0.1:3100`.
 
-```text
-http://127.0.0.1:3100
-```
+Para que otras PCs de la red se conecten, el firewall debe permitir TCP 80 y 3100 y UDP 3101 solo para la red local. `Instalar servidor en esta PC.cmd` lo configura.
 
-Para que otras PCs de la red se conecten, el servidor debe escuchar en `0.0.0.0` y el firewall debe permitir el puerto `3100`.
+Si `npm install` avisa que no corrio el script de instalacion de Electron, ejecuta `npm install-scripts approve electron` y vuelve a instalar. Sin ese paso, Electron queda incompleto y las ventanas se ven como texto sin estilos.
 
 ### Simulador local
 
@@ -143,13 +147,15 @@ cd pc-bridge
 npm run mock-agent -- --pcs 8
 ```
 
-El simulador permite comprobar el dashboard sin instalar Windows ni conectar equipos fisicos.
+El simulador permite comprobar el dashboard sin instalar Windows ni conectar equipos fisicos. Necesita `pc-bridge/agent/mock-students.json` con las cuentas demo de alumno (`[{ "username": "...", "password": "..." }]`); ese archivo no se sube a Git, pidelo al equipo.
 
 ### Agente Windows por consola
 
 ```powershell
 cd pc-bridge
-$env:LABCONTROL_SERVER="http://IP-DE-LA-MAC:3100"
+$env:LABCONTROL_SERVER="http://IP-DEL-SERVIDOR"
+$env:LABCONTROL_USER="matricula"
+$env:LABCONTROL_PASSWORD="contrasena"
 npm run windows-agent
 ```
 
@@ -174,7 +180,8 @@ Configuracion actual de referencia:
 ```json
 {
   "serverUrl": "http://labcontrol",
-  "mode": "lab-managed"
+  "mode": "lab-managed",
+  "discoveryPublicKey": "(la escribe el servidor la primera vez que arranca)"
 }
 ```
 
@@ -186,9 +193,9 @@ En la PC del laboratorio, el servidor se instala una vez con `pc-bridge/Instalar
 
 Antes de distribuir el instalador:
 
-1. Confirmar la IP local fija de la Mac.
-2. Actualizar `serverUrl`.
-3. Levantar el servidor con esa IP disponible en la red.
+1. Confirmar el nombre (`LABCONTROL`) o la IP fija de la PC servidor.
+2. Actualizar `serverUrl` y comprobar que el archivo tenga `discoveryPublicKey`.
+3. Levantar el servidor en esa PC.
 4. Permitir TCP `80` y `3100` y UDP `3101` en el firewall, solo para la red local.
 5. Probar desde dos o tres PCs.
 6. Despues instalar en todas las PCs autorizadas.
@@ -299,13 +306,17 @@ Para equipos Windows ARM:
 npm run build:win -- --arm64
 ```
 
-Tambien existe el archivo `Crear instalador Windows.cmd` para automatizar `npm install` y la compilacion.
+Tambien existe el archivo `Crear instalador Windows.cmd` para automatizar `npm install` y la compilacion. Ejecutalo como administrador (o activa el Modo de programador de Windows); sin permisos falla al crear enlaces simbolicos.
+
+El instalador lleva el logo oficial (`build/icon.ico`, `installerHeader.bmp` e `installerSidebar.bmp`). No esta firmado digitalmente, asi que Windows SmartScreen puede mostrar "Editor desconocido"; se continua con "Mas informacion > Ejecutar de todas formas".
 
 ## 11. Prueba recomendada en laboratorio
 
+La lista completa, para marcar, esta en `CHECKLIST-INSTALACION.md`. Resumen:
+
 1. Instalar el agente en dos o tres PCs autorizadas.
-2. Confirmar que todas apuntan a la misma IP de la Mac.
-3. Abrir el servidor local en la Mac.
+2. Confirmar que todas apuntan al servidor (`http://labcontrol` o su IP).
+3. Comprobar que el servidor del laboratorio esta en linea.
 4. Iniciar sesion en cada PC con un usuario de alumno.
 5. Confirmar que las PCs aparecen en el dashboard.
 6. Abrir Word o una app permitida y comprobar que se reporta.
@@ -333,7 +344,7 @@ Se han validado en el servidor local:
 - Importacion de cuentas por CSV y login con una cuenta importada.
 - Simulador con varias PCs y una en login pendiente.
 
-No se pudo compilar el `.exe` desde el entorno de desarrollo en la nube; se compila en una PC Windows con `Crear instalador Windows.cmd`.
+El `.exe` se compila en una PC Windows con `Crear instalador Windows.cmd`. El 15 de octubre de 2026 se volvio a compilar y se comprobo que el instalador y la app llevan el logo oficial.
 
 Prueba en Windows real (14 de octubre de 2026, PC de Christian, Windows 11, servidor y agente en la misma PC, panel desde un telefono en la misma red):
 
@@ -356,18 +367,17 @@ Se elimino `api/chat.js` (Gemini). Para agregar un tema nuevo, se suma una entra
 
 ## 14. Clases y grupos
 
-La idea funcional es que el maestro seleccione una clase activa, por ejemplo `Sexto Logistica`, y vea solo los alumnos y equipos asignados a ese grupo.
+Ya existe:
 
-Esto aun debe implementarse como modelo real. Actualmente hay roles, pero no existe una base completa de:
+- Cada alumno tiene un grupo, tomado de la columna "grupo" del Excel de la escuela (`npm run alumnos -- importar alumnos.xlsx`). El alumno no lo elige ni lo cambia.
+- El panel muestra el grupo debajo del nombre, con la matricula, en Inicio, Sesiones y Usuarios.
+- En Usuarios, el buscador encuentra alumnos por nombre, matricula o grupo.
 
-- Grupos.
-- Clases.
-- Horarios.
-- Alumnos asignados.
-- Equipos asignados.
-- Clase activa del maestro.
+El selector de clase activa se quito del panel porque no filtraba. Queda como mejora futura, y necesitaria:
 
-No presentar el selector de clase como funcional hasta agregar persistencia, asignaciones y filtrado real.
+- Clases y horarios.
+- Equipos asignados a cada clase.
+- Clase activa del maestro y filtrado real del panel.
 
 ## 15. Computadoras personales
 
@@ -382,17 +392,19 @@ El bloqueo desde red es una fase posterior. No depende solo del panel web.
 - Mantener el servidor en una PC administrada.
 - No exponer el puerto local a internet sin autenticacion y cifrado.
 - No distribuir credenciales demo en un entorno real.
-- No subir `server/users.json`, `server/audit.log` ni los CSV de contrasenas a Git.
-- La conexion es HTTP dentro de la red local; no exponer el puerto 3100 a internet.
+- No subir `server/users.json`, `server/audit.log`, `server/discovery-private.pem`, el Excel de alumnos, las hojas de codigos ni `agent/mock-students.json` a Git.
+- La conexion es HTTP dentro de la red local; no exponer los puertos 80, 3100 ni 3101 a internet.
+- Las contrasenas demo estuvieron escritas en commits anteriores al 15 de octubre de 2026. Las cuentas demo nunca deben quedar activas en el laboratorio.
+- Las sesiones viven en memoria: si el servidor se reinicia, alumnos y maestros vuelven a iniciar sesion.
 - Registrar excepciones administrativas (se hace solo en `server/audit.log`).
 - No ocultar actividad ni falsificar aplicaciones.
 - Probar cierres y bloqueo solamente con autorizacion.
 
-## 17. Flujo Git antes de `main`
+## 17. Flujo Git
 
-El camino correcto es:
+`main` tiene la version estable. Para cada cambio nuevo:
 
-1. Trabajar en una rama de funcionalidad, actualmente `pc-agent-bridge`.
+1. Crear una rama de funcionalidad desde `main`.
 2. Revisar los cambios y separar archivos generados o ajenos.
 3. Ejecutar validaciones de sintaxis y pruebas del servidor.
 4. Probar en Windows real.
@@ -417,8 +429,7 @@ No usar `staging` como base de desarrollo ni publicar en produccion sin aprobaci
 - `pc-bridge/config/labcontrol-config.json`: direccion del servidor.
 - `pc-bridge/package.json`: scripts y configuracion del instalador.
 - `pc-bridge/dist/`: instaladores generados, no codigo fuente.
-- `entregables/pruebas-zapata/`: paquete de pruebas para una PC Windows.
-- `entregables/trailer-labcontrol/`: recursos, capturas, audio y videos del trailer.
+- `entregables/pruebas-zapata/`: paquete de pruebas para una PC Windows (copia de septiembre; para pruebas nuevas usar `pc-bridge` directamente).
 
 ## 19. Reglas para continuar el proyecto
 
