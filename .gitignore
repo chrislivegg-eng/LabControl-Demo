@@ -3,7 +3,7 @@
 .vercel
 node_modules
 pc-bridge/dist
-server/audit.log
+pc-bridge/server/audit.log
 pc-bridge/server/users.json
 pc-bridge/tools/*.csv
 pc-bridge/server/discovery-private.pem
@@ -16,3 +16,5 @@ pc-bridge/tools/*.xlsx
 **/codigos-activacion-*.html
 *.xlsx
 pc-bridge/server/history/
+# Copias locales de Tailwind y Chart.js (se descargan con npm run vendor)
+assets/vendor/

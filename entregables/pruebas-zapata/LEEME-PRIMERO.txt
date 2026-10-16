@@ -18,8 +18,8 @@ PREPARACION
 5. Abre 03-Abrir-app.cmd. Se abren el navegador y la app de LabControl.
 
 CUENTAS DE DEMOSTRACION DE ESTE PAQUETE
-En la app del alumno: alumno1 / Alumno2026!
-En el navegador, panel del maestro: maestro / Maestro2026!
+En la app del alumno: alumno1 (pide la contrasena al equipo)
+En el navegador, panel del maestro: maestro (pide la contrasena al equipo)
 Direccion del panel: http://127.0.0.1:3100
 Son dos inicios de sesion distintos, aunque uses la misma computadora.
 

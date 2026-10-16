@@ -1,4 +1,5 @@
 {
   "serverUrl": "http://labcontrol",
-  "mode": "lab-managed"
+  "mode": "lab-managed",
+  "discoveryPublicKey": "MCowBQYDK2VwAyEARPzYkEhDPR+Qcf3BvP7Omf7I4U+Bj3mDmeDLivyjElk="
 }

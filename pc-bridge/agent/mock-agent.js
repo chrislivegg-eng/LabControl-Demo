@@ -4,6 +4,8 @@
 //      npm run mock-agent -- --server auto   (busca el servidor en la red)
 // No cierra nada: solo envia reportes como lo haria el agente real.
 
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { loadAgentConfig } from './config.js';
 import { resolveServerUrl } from './discovery.js';
 
@@ -19,12 +21,15 @@ let SERVER_URL = String(readArg('server', process.env.LABCONTROL_SERVER || 'http
 const PC_COUNT = Math.max(1, Math.min(30, Number(readArg('pcs', 6)) || 6));
 const REPORT_MS = Number(readArg('interval', 5000)) || 5000;
 
-// Cuentas demo de alumno (pc-bridge/server/users.json).
-const STUDENTS = [
-  { username: 'chris', password: 'Lab2026!' },
-  { username: 'bebe1', password: 'Bebe2026!' },
-  { username: 'alumno1', password: 'Alumno2026!' }
-];
+// Cuentas demo de alumno. Las contrasenas no se suben a Git: viven en
+// agent/mock-students.json (ignorado), con el formato
+// [{ "username": "alumno1", "password": "..." }].
+const STUDENTS_PATH = fileURLToPath(new URL('./mock-students.json', import.meta.url));
+if (!existsSync(STUDENTS_PATH)) {
+  console.error('Falta agent/mock-students.json con las cuentas demo de alumno. Pidelo al equipo.');
+  process.exit(1);
+}
+const STUDENTS = JSON.parse(readFileSync(STUDENTS_PATH, 'utf8'));
 
 // Actividades posibles. Las ultimas coinciden con reglas de prueba.
 const ACTIVITIES = [

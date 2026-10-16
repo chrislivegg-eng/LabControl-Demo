@@ -31,7 +31,7 @@ async function promptForCredentials(errorMessage = '') {
   if (process.platform !== 'win32') {
     return {
       username: process.env.LABCONTROL_USER || os.userInfo().username,
-      password: process.env.LABCONTROL_PASSWORD || 'Lab2026!'
+      password: process.env.LABCONTROL_PASSWORD || ''
     };
   }
 
