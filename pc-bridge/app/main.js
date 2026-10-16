@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, Tray } from 'electron';
 import { execFile } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -10,6 +10,8 @@ import { OfflineLog } from '../agent/offline-log.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Logo oficial de LabControl para la ventana, la barra de tareas y la bandeja.
+const APP_ICON = path.join(__dirname, 'icon.ico');
 const AGENT_CONFIG = loadAgentConfig();
 let serverUrl = AGENT_CONFIG.serverUrl;
 let networkFailures = 0;
@@ -54,6 +56,7 @@ function createWindow() {
     title: 'LabControl Agent',
     show: false,
     backgroundColor: '#fff7f2',
+    icon: APP_ICON,
     alwaysOnTop: !activeSession,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -93,8 +96,7 @@ function createWindow() {
 }
 
 function createTray() {
-  const trayIcon = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFElEQVR4AWP4z8Dwn4ECwESJ5lEDACu9AhG4oc3FAAAAAElFTkSuQmCC');
-  tray = new Tray(trayIcon);
+  tray = new Tray(APP_ICON);
   const menuItems = [{ label: 'Mostrar LabControl', click: () => showLoginWindow() }];
   // En la app instalada el alumno no puede cerrar el agente desde la bandeja.
   if (!app.isPackaged) {
@@ -510,6 +512,9 @@ ipcMain.handle('agent:set-password', async (_event, data) => {
     throw error;
   }
 });
+
+// Mismo id que el instalador (build.appId) para que Windows use el icono de LabControl.
+app.setAppUserModelId('edu.colegiociudadano.labcontrol.agent');
 
 // Solo una copia del agente por PC.
 const hasInstanceLock = app.requestSingleInstanceLock();

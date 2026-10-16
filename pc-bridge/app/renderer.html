@@ -3,16 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LabControl Agent</title>
+    <title>LabControl</title>
+    <link rel="icon" type="image/png" href="logo.png" />
     <link rel="stylesheet" href="renderer.css" />
   </head>
   <body>
     <main class="agent-shell">
       <section class="login-card">
-        <div class="brand-mark">LC</div>
-        <p class="eyebrow">Colegio Ciudadano</p>
-        <h1>LabControl Agent</h1>
-        <p class="subtitle">Inicia sesión para usar esta PC del laboratorio.</p>
+        <header class="brand">
+          <img class="brand-mark" src="logo.png" alt="" />
+          <h1><span class="lab">Lab</span><span class="control">Control</span></h1>
+          <p class="eyebrow">Colegio Ciudadano</p>
+          <p class="subtitle">Inicia sesión para usar esta PC del laboratorio.</p>
+        </header>
 
         <div class="pc-card">
           <span>Equipo</span>
@@ -24,7 +27,7 @@
           <input id="username" name="username" type="text" placeholder="DES0000" autocapitalize="characters" spellcheck="false" required />
 
           <label for="password">Contraseña</label>
-          <input id="password" name="password" type="password" placeholder="••••••••" required />
+          <input id="password" name="password" type="password" placeholder="Tu contraseña" required />
           <p class="hint">¿Primera vez o te restablecieron el acceso? Escribe el código de activación que te dieron.</p>
 
           <p class="message" id="message">Esta ventana se mantiene activa hasta iniciar sesión.</p>

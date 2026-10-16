@@ -7,21 +7,19 @@
     <style>
       :root { color-scheme: light; font-family: "Segoe UI", Arial, sans-serif; }
       * { box-sizing: border-box; }
-      html, body { height: 100%; }
       body {
         margin: 0;
-        overflow: hidden;
+        min-height: 100vh;
         color: #1f1b18;
         background:
           radial-gradient(circle at top left, rgba(249, 115, 22, .22), transparent 34%),
           linear-gradient(145deg, #fff7f2 0%, #fff 60%, #fee9dc 100%);
-        padding: 20px;
+        padding: 22px;
       }
       .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
       .brand-mark {
-        display: grid; width: 48px; height: 48px; place-items: center;
-        border-radius: 14px; background: #f97316; color: #fff; font-weight: 900;
-        letter-spacing: -.04em; font-size: 18px; box-shadow: 0 10px 22px rgba(249,115,22,.35);
+        display: block; width: 52px; height: 52px; border-radius: 50%;
+        box-shadow: 0 10px 22px rgba(249,115,22,.30);
       }
       .brand h1 { margin: 0; font-size: 20px; line-height: 1; }
       .brand p { margin: 3px 0 0; color: #8a7a70; font-size: 12px; font-weight: 700;
@@ -74,7 +72,7 @@
   </head>
   <body>
     <div class="brand">
-      <div class="brand-mark">LC</div>
+      <img class="brand-mark" src="logo.png" alt="LabControl" />
       <div>
         <h1><span style="color:#171412">Lab</span><span style="color:#f97316">Control</span></h1>
         <p>Servidor del laboratorio</p>
