@@ -1,4 +1,4 @@
-const activities = [
+let activities = [
   { name: 'Ana Lopez', pc: 'PC-LAB-07', app: 'Microsoft Word', time: '32 min', status: 'Permitido', allowed: true },
   { name: 'Carlos Ruiz', pc: 'PC-LAB-12', app: 'Google Chrome', time: '21 min', status: 'Permitido', allowed: true },
   { name: 'Sofia Torres', pc: 'PC-LAB-03', app: 'Minecraft', time: '7 min', status: 'No permitido', allowed: false },
@@ -11,7 +11,7 @@ const activities = [
   { name: 'Lucas Morales', pc: 'PC-LAB-04', app: 'Python IDLE', time: '35 min', status: 'Permitido', allowed: true }
 ];
 
-const students = [ 
+let students = [ 
   ['Ana Lopez', 'PC-LAB-07 · Sesion activa'], 
   ['Carlos Ruiz', 'PC-LAB-12 · Sesion activa'], 
   ['Sofia Torres', 'PC-LAB-03 · Alerta pendiente'], 
@@ -24,13 +24,16 @@ const students = [
   ['Lucas Morales', 'PC-LAB-04 · Sesion activa']
 ];
 
-// Actualizar la fecha del dashboard sin el día de la semana
+// Fecha del dashboard sin el día de la semana. Se revisa cada minuto para que
+// cambie sola a medianoche si el panel se queda abierto.
 const dateElement = document.querySelector('#current-date');
-if (dateElement) {
+function updateDashboardDate() {
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  const today = new Date();
-  const formattedDate = today.toLocaleDateString('es-ES', options);
-  dateElement.textContent = `Hoy, ${formattedDate}`;
+  dateElement.textContent = `Hoy, ${new Date().toLocaleDateString('es-ES', options)}`;
+}
+if (dateElement) {
+  updateDashboardDate();
+  setInterval(updateDashboardDate, 60 * 1000);
 }
 
 // Función para generar filas de una lista dada
@@ -40,12 +43,18 @@ function renderActivityRows(list) {
       ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
       : 'bg-red-50 text-red-600 border-red-100';
     const iconState = item.allowed ? '✓' : '⚠️';
+    const pageDetail = item.detail || 'Sin página detectada';
 
     return `
       <tr class="hover:bg-gray-50/50 transition">
-          <td class="py-3.5 px-2 font-medium text-gray-900">${item.name}</td>
-          <td class="py-3.5 px-2 text-gray-500">${item.pc}</td>
-          <td class="py-3.5 px-2 text-gray-800">${item.app}</td>
+          <td class="py-3.5 px-2 font-medium text-gray-900">${escapeHtml(item.name)}${item.matricula ? `<span class="student-id">${escapeHtml([item.matricula, item.group].filter(Boolean).join(' · '))}</span>` : ''}</td>
+          <td class="py-3.5 px-2 text-gray-500">${escapeHtml(item.pc)}</td>
+          <td class="py-3.5 px-2 text-gray-800">
+              <span class="activity-app">${escapeHtml(item.app)}</span>
+          </td>
+          <td class="py-3.5 px-2 text-gray-600">
+              <span class="activity-detail">${escapeHtml(pageDetail)}</span>
+          </td>
           <td class="py-3.5 px-2 text-gray-600">${item.time}</td>
           <td class="py-3.5 px-2">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeColor}">
@@ -57,10 +66,21 @@ function renderActivityRows(list) {
   }).join('');
 }
 
-document.querySelector('#activity-body').innerHTML = renderActivityRows(activities.slice(0, 4));
-document.querySelector('#activity-full-body').innerHTML = renderActivityRows(activities);
-document.querySelector('#students-list').innerHTML = students.map(([name, detail]) => {
-  const initials = name.split(' ').map(n => n[0]).join('');
+function escapeHtml(value = '') {
+  return String(value).replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[character]));
+}
+
+function renderStudentsList(list) {
+  const studentsList = document.querySelector('#students-list');
+  if (!studentsList) return;
+  studentsList.innerHTML = list.map(([name, detail]) => {
+  const initials = escapeHtml(name.split(' ').map(n => n[0]).join('').slice(0, 2));
   const isAlert = detail.includes('Alerta');
   const badgeClass = isAlert 
     ? 'bg-red-50 text-red-600 border-red-100' 
@@ -72,22 +92,53 @@ document.querySelector('#students-list').innerHTML = students.map(([name, detail
         ${initials}
       </div>
       <div class="min-w-0 flex-1">
-        <h4 class="text-sm font-bold text-gray-900 truncate">${name}</h4>
-        <p class="text-xs text-gray-500 mt-0.5 mb-3">${detail.split('·')[0].trim()}</p>
+        <h4 class="text-sm font-bold text-gray-900 truncate">${escapeHtml(name)}</h4>
+        <p class="text-xs text-gray-500 mt-0.5 mb-3">${escapeHtml(detail.split('·')[0].trim())}</p>
         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeClass}">
           ${detail.split('·')[1] || 'Sesión activa'}
         </span>
       </div>
     </div>
   `;
-}).join('');
+  }).join('');
+}
+
+function renderLabData(list, summary = {}) {
+  const activityBody = document.querySelector('#activity-body');
+  const activityFullBody = document.querySelector('#activity-full-body');
+  const metricSessions = document.querySelector('#metric-sessions');
+  const metricPcs = document.querySelector('#metric-pcs');
+  const metricAlerts = document.querySelector('#metric-alerts');
+  const metricAcademic = document.querySelector('#metric-academic');
+
+  activities = list;
+  students = list.map(item => [
+    item.name,
+    `${item.pc} · ${item.allowed ? 'Sesion activa' : 'Alerta pendiente'}`
+  ]);
+
+  if (activityBody) activityBody.innerHTML = renderActivityRows(list.slice(0, 4));
+  if (activityFullBody) activityFullBody.innerHTML = renderActivityRows(list);
+  renderStudentsList(students);
+
+  const sessions = list.filter(item => item.sessionId !== null);
+  const alertCount = sessions.filter(item => !item.allowed).length;
+  const academicPercent = sessions.length ? Math.round((sessions.length - alertCount) / sessions.length * 100) : 0;
+
+  if (metricSessions) metricSessions.textContent = summary.activeSessions ?? sessions.length;
+  if (metricPcs) metricPcs.textContent = summary.connectedPcs ?? new Set(list.map(item => item.pc)).size;
+  if (metricAlerts) metricAlerts.textContent = summary.alerts ?? alertCount;
+  if (metricAcademic) metricAcademic.textContent = `${summary.academicUsePercent ?? academicPercent}%`;
+}
+
+renderLabData(activities);
 
 // 2. GRÁFICA DE CHART.JS CON EL EJE DE MINUTOS
 const contenedorBarras = document.querySelector('#app-bars');
 contenedorBarras.innerHTML = '<canvas id="graficaUso"></canvas>';
 const ctxGrafica = document.getElementById('graficaUso').getContext('2d');
 
-new Chart(ctxGrafica, {
+const usageChart = new Chart(ctxGrafica, {
     type: 'bar',
     data: {
         labels: ["Google Chrome", "Microsoft Word", "PowerPoint", "YouTube", "Minecraft", "PDF Reader"],
@@ -123,6 +174,369 @@ new Chart(ctxGrafica, {
     }
 });
 
+function updateUsageChart(list) {
+  if (!usageChart) return;
+  const minutesByApp = list.reduce((accumulator, item) => {
+    const minutes = Number.parseInt(item.time, 10) || 0;
+    accumulator[item.app] = (accumulator[item.app] || 0) + minutes;
+    return accumulator;
+  }, {});
+  usageChart.data.labels = Object.keys(minutesByApp);
+  usageChart.data.datasets[0].data = Object.values(minutesByApp);
+  usageChart.update();
+}
+
+const AGENT_API_URL = window.LABCONTROL_AGENT_API_URL || '';
+const RULES_API_URL = AGENT_API_URL ? '/api/lab/rules' : '';
+const RULES_EXCEPTION_API_URL = AGENT_API_URL ? '/api/lab/rules/exception' : '';
+const TEACHER_LOGIN_API_URL = AGENT_API_URL ? '/api/teacher/login' : '';
+let activeTeacher = null;
+// Con el servidor del laboratorio el panel no es una demo: se ajustan los textos
+// y se oculta el reporte por alumno de ejemplo (sus datos son inventados).
+if (AGENT_API_URL) {
+  const demoReport = document.querySelector('#report-page > article');
+  if (demoReport) demoReport.hidden = true;
+  document.title = 'LabControl';
+  const eyebrow = document.querySelector('#topbar-eyebrow');
+  if (eyebrow) eyebrow.textContent = 'COLEGIO CIUDADANO · LABORATORIO';
+  const loginNote = document.querySelector('#login-message');
+  if (loginNote) loginNote.textContent = 'LabControl no registra contraseñas, mensajes ni teclas.';
+}
+
+// El token vive solo en memoria: al recargar la pagina hay que volver a entrar.
+let teacherToken = '';
+
+function setTeacherToken(token) {
+  teacherToken = token || '';
+}
+
+// Llamadas al servidor local con la sesion del maestro.
+async function teacherFetch(url, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (teacherToken) headers.Authorization = `Bearer ${teacherToken}`;
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401 && activeTeacher) {
+    endTeacherSession('Tu sesión expiró. Vuelve a iniciar sesión.');
+  }
+  return response;
+}
+
+const agentStatus = document.querySelector('#agent-status');
+const notifiedAlertKeys = new Set();
+let browserNotificationsEnabled = window.localStorage.getItem('labcontrol-browser-notifications') === 'enabled' && 'Notification' in window && Notification.permission === 'granted';
+
+async function refreshAgentData() {
+  if (!AGENT_API_URL || !teacherToken) return;
+
+  try {
+    const response = await teacherFetch(AGENT_API_URL);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No fue posible leer los equipos.');
+    if (Array.isArray(payload.activities)) {
+      renderLabData(payload.activities, payload.summary || {});
+      if (rosterStudents.length) renderRoster();
+      if (!AGENT_API_URL) updateUsageChart(payload.activities);
+      notifyNewAlerts(payload.activities);
+    }
+    if (agentStatus) {
+      agentStatus.textContent = `En vivo · ${payload.summary?.connectedPcs ?? 0} PCs`;
+      agentStatus.classList.add('online');
+    }
+  } catch (error) {
+    if (agentStatus) {
+      agentStatus.textContent = 'Servidor local sin datos';
+      agentStatus.classList.remove('online');
+    }
+  }
+}
+
+if (AGENT_API_URL) {
+  window.setInterval(refreshAgentData, 5000);
+}
+
+const ruleBlockEnabled = document.querySelector('#rule-block-enabled');
+const ruleBlockLabel = document.querySelector('#rule-block-label');
+const blockedList = document.querySelector('#blocked-list');
+const blockedWebList = document.querySelector('#blocked-web-list');
+const exceptionsList = document.querySelector('#exceptions-list');
+const rulesMessage = document.querySelector('#rules-message');
+const webRuleForm = document.querySelector('#web-rule-form');
+const webRuleInput = document.querySelector('#web-rule-input');
+
+// Cada regla es una etiqueta con una X para quitarla.
+function ruleChip(value, list, label = value) {
+  return `<span class="rule-chip">${escapeHtml(label)}<button type="button" data-remove-list="${escapeHtml(list)}" data-remove-value="${escapeHtml(value)}" aria-label="Quitar ${escapeHtml(label)}" title="Quitar">×</button></span>`;
+}
+
+function renderChips(container, chips, emptyText) {
+  if (!container) return;
+  container.innerHTML = chips.length ? chips.join('') : `<span class="rule-empty">${escapeHtml(emptyText)}</span>`;
+}
+
+function renderRulesPanel(rules) {
+  if (!ruleBlockEnabled) return;
+  ruleBlockEnabled.checked = Boolean(rules.blockEnabled);
+  if (ruleBlockLabel) ruleBlockLabel.textContent = rules.blockEnabled ? 'Bloqueo activo' : 'Solo alertas';
+  renderChips(blockedList, [
+    ...(rules.blockedApps || []).map(item => ruleChip(item, 'blockedApps')),
+    ...(rules.blockedPages || []).map(item => ruleChip(item, 'blockedPages'))
+  ], 'Ninguna app bloqueada.');
+  renderChips(blockedWebList, [
+    ...(rules.blockedDomains || []).map(item => ruleChip(item, 'blockedDomains')),
+    ...(rules.blockedDomainSuffixes || []).map(item => ruleChip(item, 'blockedDomainSuffixes', `*${item}`)),
+    ...(rules.blockedKeywords || []).map(item => ruleChip(item, 'blockedKeywords', `“${item}”`))
+  ], 'Ninguna regla web.');
+  renderChips(exceptionsList, (rules.exceptions || []).map(item => ruleChip(item, 'exceptions')), 'Sin excepciones por ahora.');
+}
+
+async function loadRulesPanel() {
+  if (!RULES_API_URL || !ruleBlockEnabled || !teacherToken) return;
+  try {
+    const response = await teacherFetch(RULES_API_URL);
+    const rules = await response.json();
+    if (!response.ok) throw new Error(rules.error || 'No fue posible leer reglas.');
+    renderRulesPanel(rules);
+  } catch (error) {
+    if (rulesMessage) rulesMessage.textContent = error.message;
+  }
+}
+
+async function saveRulesPatch(patch) {
+  const response = await teacherFetch(RULES_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch)
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'No fue posible guardar reglas.');
+  renderRulesPanel(payload.rules);
+  if (rulesMessage) rulesMessage.textContent = 'Reglas actualizadas para la siguiente lectura de los agentes.';
+}
+
+ruleBlockEnabled?.addEventListener('change', () => {
+  saveRulesPatch({ blockEnabled: ruleBlockEnabled.checked }).catch(error => {
+    if (rulesMessage) rulesMessage.textContent = error.message;
+    ruleBlockEnabled.checked = !ruleBlockEnabled.checked;
+  });
+});
+
+webRuleForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  const value = webRuleInput?.value.trim();
+
+  if (!value) {
+    if (rulesMessage) rulesMessage.textContent = 'Escribe una página, dominio, sufijo o palabra para bloquear.';
+    return;
+  }
+
+  saveRulesPatch({ addBlockedWebRule: value })
+    .then(() => {
+      if (webRuleInput) webRuleInput.value = '';
+      if (rulesMessage) rulesMessage.textContent = `${value} quedó guardado como regla web prohibida.`;
+    })
+    .catch(error => {
+      if (rulesMessage) rulesMessage.textContent = error.message;
+    });
+});
+
+async function changeException(name, action) {
+  const response = await teacherFetch(RULES_EXCEPTION_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, action })
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'No fue posible cambiar la excepción.');
+  renderRulesPanel(payload.rules);
+}
+
+const exceptionForm = document.querySelector('#exception-form');
+const exceptionInput = document.querySelector('#exception-input');
+
+exceptionForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const value = exceptionInput?.value.trim();
+  if (!value) {
+    if (rulesMessage) rulesMessage.textContent = 'Escribe la página o app que quieres permitir.';
+    return;
+  }
+  try {
+    await changeException(value, 'allow');
+    exceptionInput.value = '';
+    if (rulesMessage) rulesMessage.textContent = `${value} quedó permitido como excepción.`;
+  } catch (error) {
+    if (rulesMessage) rulesMessage.textContent = error.message;
+  }
+});
+
+// Quitar una regla o una excepcion desde la X de su etiqueta.
+document.querySelector('#settings-page')?.addEventListener('click', async event => {
+  const button = event.target.closest('[data-remove-list]');
+  if (!button) return;
+  const list = button.dataset.removeList;
+  const value = button.dataset.removeValue;
+  button.disabled = true;
+  try {
+    if (list === 'exceptions') {
+      await changeException(value, 'remove');
+      if (rulesMessage) rulesMessage.textContent = `${value} ya no es excepción: vuelve a seguir las reglas.`;
+    } else {
+      await saveRulesPatch({ removeRule: { list, value } });
+      if (rulesMessage) rulesMessage.textContent = `${value} ya no está prohibido.`;
+    }
+  } catch (error) {
+    button.disabled = false;
+    if (rulesMessage) rulesMessage.textContent = error.message;
+  }
+});
+
+
+function getAlertKey(item) {
+  return [item.pc, item.app, item.detail || '', item.status].join('|');
+}
+
+function buildAlertMessage(item) {
+  const page = item.detail ? ` · ${item.detail}` : '';
+  return `${item.name} en ${item.pc}: ${item.app}${page}`;
+}
+
+function sendBrowserAlert(item) {
+  if (!browserNotificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const notification = new Notification('Alerta de LabControl', {
+    body: buildAlertMessage(item),
+    tag: getAlertKey(item),
+    renotify: false
+  });
+
+  notification.onclick = () => {
+    window.focus();
+    openView('activity');
+    notification.close();
+  };
+}
+
+function notifyNewAlerts(list = []) {
+  list.filter(item => !item.allowed).forEach(item => {
+    const key = getAlertKey(item);
+    if (notifiedAlertKeys.has(key)) return;
+
+    notifiedAlertKeys.add(key);
+    showLabToast({
+      title: item.status === 'Requiere login' ? 'Login pendiente' : 'Alerta detectada',
+      message: buildAlertMessage(item),
+      type: 'warning'
+    });
+    sendBrowserAlert(item);
+  });
+}
+
+function getNotificationHelpMessage() {
+  if (!('Notification' in window)) return 'Este navegador no soporta notificaciones del sistema.';
+  if (Notification.permission === 'denied') {
+    return 'Las notificaciones están bloqueadas por el navegador. Abre el candado/controles del sitio junto a la URL, cambia Notificaciones a Permitir y recarga la página.';
+  }
+  if (!window.isSecureContext) {
+    return 'El navegador puede bloquear notificaciones en esta IP. Si no aparece el permiso, usa localhost en la misma PC o una URL con HTTPS.';
+  }
+  return 'Presiona Activar notificaciones para permitir alertas del sistema.';
+}
+
+function updateNotificationButtonState() {
+  const button = document.querySelector('#enable-browser-notifications');
+  const testButton = document.querySelector('#test-browser-notification');
+  if (!button) return;
+
+  if (!('Notification' in window)) {
+    button.textContent = 'No soportadas';
+    button.disabled = true;
+    if (testButton) testButton.disabled = true;
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    browserNotificationsEnabled = true;
+    window.localStorage.setItem('labcontrol-browser-notifications', 'enabled');
+    button.textContent = 'Notificaciones activas';
+    button.classList.remove('blocked');
+    if (testButton) testButton.disabled = false;
+    return;
+  }
+
+  browserNotificationsEnabled = false;
+  window.localStorage.removeItem('labcontrol-browser-notifications');
+  if (Notification.permission === 'denied') {
+    button.textContent = 'Bloqueadas por navegador';
+    button.classList.add('blocked');
+    if (testButton) testButton.disabled = true;
+  } else {
+    button.textContent = 'Activar notificaciones';
+    button.classList.remove('blocked');
+    if (testButton) testButton.disabled = false;
+  }
+}
+
+async function requestBrowserNotifications() {
+  if (!('Notification' in window)) {
+    if (rulesMessage) rulesMessage.textContent = getNotificationHelpMessage();
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    const help = getNotificationHelpMessage();
+    if (rulesMessage) rulesMessage.textContent = help;
+    showLabToast({ title: 'Notificaciones bloqueadas', message: help, type: 'warning' });
+    updateNotificationButtonState();
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  browserNotificationsEnabled = permission === 'granted';
+  updateNotificationButtonState();
+
+  if (browserNotificationsEnabled) {
+    showLabToast({
+      title: 'Notificaciones activadas',
+      message: 'Las alertas nuevas también aparecerán como notificación del navegador.'
+    });
+  } else {
+    const help = getNotificationHelpMessage();
+    if (rulesMessage) rulesMessage.textContent = help;
+    showLabToast({ title: 'No se activaron', message: help, type: 'warning' });
+  }
+}
+
+function testBrowserNotification() {
+  if (!browserNotificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') {
+    const help = getNotificationHelpMessage();
+    if (rulesMessage) rulesMessage.textContent = help;
+    showLabToast({ title: 'Notificación no disponible', message: help, type: 'warning' });
+    updateNotificationButtonState();
+    return;
+  }
+
+  new Notification('LabControl funcionando', {
+    body: 'Las alertas del laboratorio ya pueden salir como notificación del navegador.',
+    tag: 'labcontrol-test-notification'
+  });
+}
+
+const enableBrowserNotificationsButton = document.querySelector('#enable-browser-notifications');
+if (enableBrowserNotificationsButton) {
+  updateNotificationButtonState();
+  enableBrowserNotificationsButton.addEventListener('click', () => {
+    requestBrowserNotifications().catch(error => {
+      if (rulesMessage) rulesMessage.textContent = error.message;
+    });
+  });
+}
+
+const testBrowserNotificationButton = document.querySelector('#test-browser-notification');
+testBrowserNotificationButton?.addEventListener('click', testBrowserNotification);
+
+loadRulesPanel();
+
+
 // 3. NAVEGACIÓN Y ACCIONES DEL SISTEMA
 const titles = { 
   dashboard: 'Resumen del laboratorio', 
@@ -131,7 +545,360 @@ const titles = {
   students: 'Usuarios registrados',
   settings: 'Configuración del sistema' 
 };
+// --- Reporte de actividad sin conexion ---
+const OFFLINE_API_URL = AGENT_API_URL ? '/api/lab/offline' : '';
+const offlineReport = document.querySelector('#offline-report');
+const offlineReportBody = document.querySelector('#offline-report-body');
+
+function formatClock(ms) {
+  return new Date(ms).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDuration(seconds) {
+  const minutes = Math.round(seconds / 60);
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+function renderOfflineReport({ pcs = [] }) {
+  if (!offlineReportBody) return;
+  if (!pcs.length) {
+    offlineReportBody.innerHTML = '<p class="text-gray-400">Sin actividad sin conexión en los últimos 7 días.</p>';
+    return;
+  }
+  offlineReportBody.innerHTML = pcs.map(pc => {
+    const studentLabels = pc.studentNames || pc.students;
+    const who = [...studentLabels, ...pc.windowsUsers.map(user => `Windows: ${user}`)].filter(Boolean).join(', ') || 'Usuario desconocido';
+    const integrity = pc.integrityIssues
+      ? `<span class="inline-block bg-red-50 text-red-700 border border-red-100 rounded-lg px-2 py-0.5 text-xs font-semibold">${pc.integrityIssues} con posible alteración</span>`
+      : '<span class="inline-block bg-green-50 text-green-700 border border-green-100 rounded-lg px-2 py-0.5 text-xs font-semibold">Registro íntegro</span>';
+    const alerts = pc.alerts
+      ? `<span class="inline-block bg-orange-50 text-orange-700 border border-orange-100 rounded-lg px-2 py-0.5 text-xs font-semibold">${pc.alerts} no permitidas</span>`
+      : '';
+    const rows = pc.entries.map(entry => `
+      <tr class="${entry.allowed ? '' : 'bg-orange-50/50'}">
+        <td class="py-2 px-2 whitespace-nowrap">${escapeHtml(formatClock(entry.start))}</td>
+        <td class="py-2 px-2">${escapeHtml(entry.app)}</td>
+        <td class="py-2 px-2 text-gray-500">${escapeHtml(entry.title)}</td>
+        <td class="py-2 px-2 whitespace-nowrap">${escapeHtml(formatDuration((entry.end - entry.start) / 1000))}</td>
+        <td class="py-2 px-2 whitespace-nowrap">${entry.allowed ? 'Permitido' : '<strong class="text-orange-700">No permitido</strong>'}${entry.flags.length ? `<br><span class="text-xs text-red-600">${escapeHtml(entry.flags.join(', '))}</span>` : ''}</td>
+      </tr>`).join('');
+    return `
+      <section class="border border-gray-100 rounded-2xl p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <strong class="text-base text-gray-900">${escapeHtml(pc.pc)}</strong>
+          <span class="text-gray-500">· ${escapeHtml(who)}</span>
+          <span class="text-gray-500">· ${escapeHtml(formatClock(pc.from))} a ${escapeHtml(formatClock(pc.to))}</span>
+          <span class="text-gray-500">· ${escapeHtml(formatDuration(pc.totalSeconds))}</span>
+          ${alerts} ${integrity}
+        </div>
+        <div class="table-wrap overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead><tr class="text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+              <th class="pb-2 px-2">Hora</th><th class="pb-2 px-2">Aplicación</th><th class="pb-2 px-2">Ventana</th><th class="pb-2 px-2">Duración</th><th class="pb-2 px-2">Estado</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">${rows}</tbody>
+          </table>
+        </div>
+      </section>`;
+  }).join('');
+}
+
+async function loadOfflineReport() {
+  if (!OFFLINE_API_URL || !teacherToken || !offlineReport) return;
+  offlineReport.classList.remove('hidden');
+  try {
+    const response = await teacherFetch(OFFLINE_API_URL);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No fue posible leer la actividad sin conexión.');
+    renderOfflineReport(payload);
+  } catch (error) {
+    if (offlineReportBody) offlineReportBody.innerHTML = `<p class="text-red-600">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+document.querySelector('#offline-refresh')?.addEventListener('click', loadOfflineReport);
+
+// --- Historial: reporte por alumno y grafica de tiempo por aplicacion ---
+const historyReport = document.querySelector('#history-report');
+const historyPeriod = document.querySelector('#history-period');
+const historyStudent = document.querySelector('#history-student');
+const historyMetrics = document.querySelector('#history-metrics');
+const historyHead = document.querySelector('#history-head');
+const historyBody = document.querySelector('#history-body');
+const historyRange = document.querySelector('#history-range');
+const historyTitle = document.querySelector('#history-title');
+const usagePeriod = document.querySelector('#usage-period');
+let historyData = null;
+
+function localDay(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// 0 = hoy, 1 = ayer, 7 y 30 = ultimos N dias incluyendo hoy.
+function periodRange(value) {
+  const days = Number(value) || 0;
+  const today = new Date();
+  if (days === 1) {
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return { from: localDay(yesterday), to: localDay(yesterday) };
+  }
+  const start = new Date(today);
+  if (days > 1) start.setDate(today.getDate() - (days - 1));
+  return { from: localDay(start), to: localDay(today) };
+}
+
+function periodLabel(range) {
+  const fmt = day => new Date(`${day}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+  return range.from === range.to ? fmt(range.from) : `${fmt(range.from)} a ${fmt(range.to)}`;
+}
+
+function formatTime(seconds) {
+  if (seconds < 60) return seconds > 0 ? 'menos de 1 min' : '0 min';
+  return formatDuration(seconds);
+}
+
+async function fetchHistory(range) {
+  const response = await teacherFetch(`/api/lab/history?from=${range.from}&to=${range.to}`);
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'No se pudo leer el historial.');
+  return payload;
+}
+
+function metric(value, label, tone = '') {
+  return `<div class="history-metric ${tone}"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>`;
+}
+
+function renderHistory() {
+  if (!historyData || !historyBody) return;
+  const selected = historyData.students.find(item => item.username === historyStudent?.value);
+
+  if (selected) {
+    historyTitle.textContent = selected.name;
+    historyMetrics.innerHTML = [
+      metric(formatTime(selected.seconds), 'Tiempo total'),
+      metric(formatTime(selected.blockedSeconds), 'No permitido', selected.blockedSeconds ? 'warn' : ''),
+      metric(`${selected.matricula} · ${selected.group || 'Sin grupo'}`, `PC: ${selected.pcs.join(', ') || '—'}`)
+    ].join('');
+    historyHead.innerHTML = '<tr class="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider"><th class="pb-3 px-2">Aplicación</th><th class="pb-3 px-2">Tiempo</th><th class="pb-3 px-2">Del total</th><th class="pb-3 px-2">Estado</th></tr>';
+    historyBody.innerHTML = selected.apps.map(app => {
+      const percent = selected.seconds ? Math.round(app.seconds / selected.seconds * 100) : 0;
+      return `<tr class="${app.blocked ? 'bg-orange-50/50' : ''}">
+        <td class="py-3 px-2 font-medium text-gray-900">${escapeHtml(app.name)}</td>
+        <td class="py-3 px-2 tabular-nums">${escapeHtml(formatTime(app.seconds))}</td>
+        <td class="py-3 px-2"><span class="history-bar"><span style="width:${percent}%"></span></span><span class="history-percent">${percent}%</span></td>
+        <td class="py-3 px-2">${app.blocked ? '<strong class="text-orange-700">No permitido</strong>' : 'Permitido'}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="4" class="py-6 px-2 text-gray-400">Sin actividad en este periodo.</td></tr>';
+    return;
+  }
+
+  const total = historyData.students.reduce((sum, item) => sum + item.seconds, 0);
+  const blocked = historyData.students.reduce((sum, item) => sum + item.blockedSeconds, 0);
+  historyTitle.textContent = 'Uso del laboratorio';
+  historyMetrics.innerHTML = [
+    metric(String(historyData.students.length), historyData.students.length === 1 ? 'Alumno con actividad' : 'Alumnos con actividad'),
+    metric(formatTime(total), 'Tiempo total'),
+    metric(formatTime(blocked), 'No permitido', blocked ? 'warn' : '')
+  ].join('');
+  historyHead.innerHTML = '<tr class="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider"><th class="pb-3 px-2">Alumno</th><th class="pb-3 px-2">Tiempo</th><th class="pb-3 px-2">No permitido</th><th class="pb-3 px-2">Más usado</th></tr>';
+  historyBody.innerHTML = historyData.students.map(item => `
+    <tr class="history-row" data-history-student="${escapeHtml(item.username)}" tabindex="0" title="Ver el reporte de ${escapeHtml(item.name)}">
+      <td class="py-3 px-2"><span class="font-medium text-gray-900">${escapeHtml(item.name)}</span><span class="student-id">${escapeHtml([item.matricula, item.group].filter(Boolean).join(' · '))}</span></td>
+      <td class="py-3 px-2 tabular-nums">${escapeHtml(formatTime(item.seconds))}</td>
+      <td class="py-3 px-2 tabular-nums ${item.blockedSeconds ? 'text-orange-700 font-semibold' : 'text-gray-400'}">${escapeHtml(formatTime(item.blockedSeconds))}</td>
+      <td class="py-3 px-2 text-gray-600">${escapeHtml(item.apps[0]?.name || '—')}</td>
+    </tr>`).join('') || '<tr><td colspan="4" class="py-6 px-2 text-gray-400">Sin actividad en este periodo. Aparece en cuanto los alumnos usan las PCs con sesión iniciada.</td></tr>';
+}
+
+async function loadHistoryReport() {
+  if (!AGENT_API_URL || !teacherToken || !historyReport) return;
+  historyReport.hidden = false;
+  const range = periodRange(historyPeriod?.value);
+  if (historyRange) historyRange.textContent = periodLabel(range);
+  try {
+    historyData = await fetchHistory(range);
+    const current = historyStudent.value;
+    historyStudent.innerHTML = '<option value="">Todos los alumnos</option>' + historyData.students
+      .slice().sort((a, b) => a.name.localeCompare(b.name, 'es'))
+      .map(item => `<option value="${escapeHtml(item.username)}">${escapeHtml(item.name)} (${escapeHtml(item.matricula)})</option>`).join('');
+    historyStudent.value = historyData.students.some(item => item.username === current) ? current : '';
+    renderHistory();
+  } catch (error) {
+    if (historyBody) historyBody.innerHTML = `<tr><td class="py-6 px-2 text-red-600">${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+historyPeriod?.addEventListener('change', loadHistoryReport);
+historyStudent?.addEventListener('change', renderHistory);
+document.querySelector('#history-print')?.addEventListener('click', () => window.print());
+historyBody?.addEventListener('click', event => {
+  const row = event.target.closest('[data-history-student]');
+  if (!row) return;
+  historyStudent.value = row.dataset.historyStudent;
+  renderHistory();
+});
+historyBody?.addEventListener('keydown', event => {
+  if (event.key !== 'Enter') return;
+  const row = event.target.closest('[data-history-student]');
+  if (!row) return;
+  historyStudent.value = row.dataset.historyStudent;
+  renderHistory();
+});
+
+// La grafica "Tiempo por aplicacion" se despliega bajo demanda. Al abrirla se
+// re-dibuja para que tome el tamano correcto (si estaba oculta salia en blanco).
+function toggleUsagePanel() {
+  const panel = document.querySelector('#usage-panel');
+  const toggle = document.querySelector('#usage-toggle');
+  const chevron = document.querySelector('#usage-chevron');
+  const hint = document.querySelector('#usage-hint');
+  if (!panel) return;
+  const willOpen = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !willOpen);
+  if (chevron) chevron.style.transform = willOpen ? 'rotate(180deg)' : '';
+  if (toggle) toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  if (hint) hint.textContent = willOpen ? 'Toca para ocultar las estadísticas' : 'Toca para ver las estadísticas';
+  if (willOpen) {
+    if (AGENT_API_URL) loadUsageChart();
+    setTimeout(() => { try { usageChart?.resize(); usageChart?.update(); } catch { /* ignore */ } }, 60);
+  }
+}
+
+// Grafica "Tiempo por aplicacion" con datos reales del historial.
+async function loadUsageChart() {
+  if (!AGENT_API_URL || !teacherToken || !usageChart) return;
+  try {
+    const data = await fetchHistory(periodRange(usagePeriod?.value));
+    const top = data.apps.slice(0, 8);
+    usageChart.data.labels = top.length ? top.map(app => app.name) : ['Sin actividad todavía'];
+    usageChart.data.datasets[0].data = top.length ? top.map(app => Math.round(app.seconds / 6) / 10) : [0];
+    usageChart.data.datasets[0].backgroundColor = top.length ? top.map(app => (app.blocked ? '#dc2626' : '#f97316')) : '#f97316';
+    usageChart.update();
+  } catch { /* la grafica conserva sus datos anteriores */ }
+}
+
+usagePeriod?.addEventListener('change', loadUsageChart);
+if (AGENT_API_URL) window.setInterval(loadUsageChart, 60000);
+
+// --- Alumnos registrados (con el servidor del laboratorio) ---
+const roster = document.querySelector('#roster');
+const rosterBody = document.querySelector('#roster-body');
+const rosterSearch = document.querySelector('#roster-search');
+const rosterCount = document.querySelector('#roster-count');
+const rosterCode = document.querySelector('#roster-code');
+let rosterStudents = [];
+
+const ACCOUNT_LABELS = {
+  activo: ['Activa', 'bg-emerald-50 text-emerald-600 border-emerald-100'],
+  pendiente: ['Sin activar', 'bg-amber-50 text-amber-700 border-amber-100'],
+  'codigo vencido': ['Código vencido', 'bg-red-50 text-red-600 border-red-100']
+};
+
+function plainText(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function renderRoster() {
+  if (!rosterBody) return;
+  const query = plainText(rosterSearch?.value);
+  const live = new Map(activities.filter(item => item.matricula).map(item => [item.matricula, item]));
+  const list = rosterStudents.filter(student => !query
+    || plainText(`${student.name} ${student.matricula} ${student.group}`).includes(query));
+
+  if (rosterCount) {
+    rosterCount.textContent = `${list.length} ${list.length === 1 ? 'alumno' : 'alumnos'}`;
+  }
+  if (!list.length) {
+    rosterBody.innerHTML = `<tr><td colspan="5" class="py-6 px-2 text-gray-400">${rosterStudents.length ? 'Ningún alumno coincide con la búsqueda.' : 'Todavía no hay alumnos. El coordinador los importa con npm run alumnos.'}</td></tr>`;
+    return;
+  }
+  rosterBody.innerHTML = list.map(student => {
+    const [label, chip] = ACCOUNT_LABELS[student.status] || ACCOUNT_LABELS.activo;
+    const now = live.get(student.matricula);
+    return `
+      <tr>
+        <td class="py-3 px-2"><span class="font-medium text-gray-900">${escapeHtml(student.name)}</span><span class="student-id">${escapeHtml(student.matricula)}</span></td>
+        <td class="py-3 px-2 text-gray-600">${escapeHtml(student.group || '—')}</td>
+        <td class="py-3 px-2 text-gray-600">${now ? `${escapeHtml(now.pc)} · ${escapeHtml(now.app)}` : '<span class="text-gray-400">Sin conexión</span>'}</td>
+        <td class="py-3 px-2"><span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${chip}">${label}</span></td>
+        <td class="py-3 px-2 text-right"><button type="button" class="roster-reset" data-reset="${escapeHtml(student.username)}" data-name="${escapeHtml(student.name)}">Restablecer</button></td>
+      </tr>`;
+  }).join('');
+}
+
+async function loadRoster() {
+  if (!AGENT_API_URL || !teacherToken || !roster) return;
+  roster.hidden = false;
+  const demoCards = document.querySelector('#students-list')?.closest('article');
+  if (demoCards) demoCards.hidden = true;
+  try {
+    const response = await teacherFetch('/api/lab/students');
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No se pudo leer la lista de alumnos.');
+    rosterStudents = payload.students || [];
+    renderRoster();
+  } catch (error) {
+    if (rosterBody) rosterBody.innerHTML = `<tr><td colspan="5" class="py-6 px-2 text-red-600">${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+rosterSearch?.addEventListener('input', renderRoster);
+
+// Restablecer: el primer clic pide confirmar; el segundo genera el codigo nuevo.
+rosterBody?.addEventListener('click', async event => {
+  const button = event.target.closest('[data-reset]');
+  if (!button) return;
+  if (button.dataset.confirm !== 'yes') {
+    button.dataset.confirm = 'yes';
+    button.textContent = '¿Confirmar?';
+    button.classList.add('confirming');
+    window.setTimeout(() => {
+      if (!button.isConnected) return;
+      button.dataset.confirm = '';
+      button.textContent = 'Restablecer';
+      button.classList.remove('confirming');
+    }, 4000);
+    return;
+  }
+  button.disabled = true;
+  try {
+    const response = await teacherFetch('/api/lab/students/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: button.dataset.reset })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'No se pudo restablecer.');
+    const expires = new Date(payload.expiresAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+    rosterCode.hidden = false;
+    rosterCode.innerHTML = `
+      <p>Código nuevo para <strong>${escapeHtml(payload.student.name)}</strong> (${escapeHtml(payload.student.matricula)}):</p>
+      <p class="roster-code-value"><span id="roster-code-text">${escapeHtml(payload.code)}</span><button type="button" id="roster-code-copy">Copiar</button></p>
+      <p class="roster-code-note">Entrégaselo en persona. Sirve una sola vez y vence el ${escapeHtml(expires)}. Su contraseña anterior ya no funciona.</p>`;
+    await loadRoster();
+  } catch (error) {
+    showLabToast({ title: 'No se restableció', message: error.message, type: 'warning' });
+    button.disabled = false;
+  }
+});
+
+rosterCode?.addEventListener('click', event => {
+  if (event.target.id !== 'roster-code-copy') return;
+  const text = document.querySelector('#roster-code-text')?.textContent || '';
+  navigator.clipboard?.writeText(text).then(() => {
+    event.target.textContent = 'Copiado';
+  }).catch(() => {
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector('#roster-code-text'));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+  });
+});
+
 function openView(name) {
+  if (name === 'report') { loadHistoryReport(); loadOfflineReport(); }
+  if (name === 'students') loadRoster();
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   document.querySelector(`#${name}-page`).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === name));
@@ -141,33 +908,288 @@ function openView(name) {
 document.querySelectorAll('.nav-item').forEach(button => button.addEventListener('click', () => openView(button.dataset.view)));
 document.querySelectorAll('[data-open]').forEach(button => button.addEventListener('click', () => openView(button.dataset.open)));
 
-document.querySelector('#login-form').addEventListener('submit', event => { 
-  event.preventDefault(); 
-  document.querySelector('#login-view').classList.add('hidden'); 
-  document.querySelector('#dashboard-view').classList.remove('hidden'); 
+document.querySelector('#login-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const loginMessage = document.querySelector('#login-message');
+  const usernameInput = document.querySelector('#username');
+  const passwordInput = document.querySelector('#password');
+
+  if (loginMessage) loginMessage.textContent = 'Validando acceso de maestro...';
+
+  try {
+    if (TEACHER_LOGIN_API_URL) {
+      const response = await fetch(TEACHER_LOGIN_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: usernameInput?.value,
+          password: passwordInput?.value
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'No fue posible iniciar sesión.');
+      activeTeacher = payload;
+      setTeacherToken(payload.token);
+      if (passwordInput) passwordInput.value = '';
+      refreshAgentData();
+      loadRulesPanel();
+      loadRoster();
+      loadUsageChart();
+    } else {
+      activeTeacher = { displayName: usernameInput?.value || 'Docente Demo', role: 'teacher' };
+    }
+
+    document.querySelector('#login-view').classList.add('hidden');
+    document.querySelector('#dashboard-view').classList.remove('hidden');
+    showLabToast({
+      title: 'Sesión de maestro iniciada',
+      message: `Bienvenido, ${activeTeacher.displayName}.`
+    });
+  } catch (error) {
+    if (loginMessage) loginMessage.textContent = error.message;
+    showLabToast({
+      title: 'Acceso rechazado',
+      message: error.message,
+      type: 'warning'
+    });
+  }
 });
 
-document.querySelector('#logout').addEventListener('click', () => { 
-  document.querySelector('#dashboard-view').classList.add('hidden'); 
-  document.querySelector('#login-view').classList.remove('hidden'); 
+function endTeacherSession(message) {
+  activeTeacher = null;
+  setTeacherToken('');
+  rosterStudents = [];
+  historyData = null;
+  if (rosterCode) { rosterCode.hidden = true; rosterCode.innerHTML = ''; }
+  document.querySelector('#dashboard-view').classList.add('hidden');
+  document.querySelector('#login-view').classList.remove('hidden');
+  const loginMessage = document.querySelector('#login-message');
+  if (loginMessage) loginMessage.textContent = message || '';
+}
+
+document.querySelector('#logout').addEventListener('click', () => {
+  if (TEACHER_LOGIN_API_URL && teacherToken) {
+    fetch('/api/teacher/logout', { method: 'POST', headers: { Authorization: `Bearer ${teacherToken}` } }).catch(() => {});
+  }
+  endTeacherSession('');
 });
 
 document.querySelector('#print-report').addEventListener('click', () => window.print());
 
 // Funciones interactivas de los botones de la demo
+function showLabToast({ title, message, type = 'success' }) {
+  let toast = document.querySelector('#lab-toast');
+
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'lab-toast';
+    toast.className = 'lab-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `
+    <div class="lab-toast-icon">${type === 'success' ? '✓' : '!'}</div>
+    <div>
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(message)}</p>
+    </div>
+  `;
+
+  toast.classList.remove('show', 'success', 'warning');
+  toast.classList.add(type, 'show');
+
+  window.clearTimeout(showLabToast.hideTimer);
+  showLabToast.hideTimer = window.setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3200);
+}
+
 function actualizarDatosDashboard() {
-    alert("¡Datos del laboratorio actualizados correctamente!");
+  if (AGENT_API_URL) {
+    refreshAgentData();
+  }
+
+  showLabToast({
+    title: 'Datos actualizados',
+    message: 'La información del laboratorio se sincronizó correctamente.'
+  });
 }
 
 function verTodasLasActividades() {
     openView('activity');
 }
 
-// 4. ASISTENTE IA
+// 4. ASISTENTE DE AYUDA (100% local: sin IA, sin internet y sin enviar datos fuera)
+// Basado en la rama asistente-local. Responde que es LabControl, donde esta cada
+// cosa y como usarla, y resume la actividad con los datos que el panel ya tiene.
 const aiPanel = document.querySelector('#ai-panel');
 const aiMessages = document.querySelector('#ai-messages');
 const aiInput = document.querySelector('#ai-input');
-const AI_API_URL = window.LABCONTROL_API_URL || 'https://labcontrol-ai-server.vercel.app/api/chat';
+const LIVE_DATA = Boolean(AGENT_API_URL);
+
+const viewNames = {
+  dashboard: 'Inicio',
+  activity: 'Sesiones',
+  report: 'Reportes',
+  students: 'Usuarios',
+  settings: 'Configuración'
+};
+
+function normalizeText(text) {
+  return String(text)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[¿?¡!.,;:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Palabras que indican que la persona pide ayuda sobre el uso del sistema.
+const helpCues = [
+  'que es', 'para que', 'sirve', 'que hace', 'que hago', 'como', 'donde', 'ayuda', 'usar', 'uso ',
+  'funciona', 'encuentro', 'encontrar', 'veo', 'ver ', 'puedo', 'se hace', 'explica', 'explicame',
+  'significa', 'que muestra', 'que tiene', 'hay en', 'para que es', 'pasa si', 'por que'
+];
+
+const helpTopics = [
+  {
+    id: 'logout',
+    keys: ['cerrar sesion', 'cierro sesion', 'cierro', 'cerrar', 'salgo', 'inicio sesion', 'inicio de sesion', 'salir', 'iniciar sesion', 'login', 'contrasena', 'entrar'],
+    answer: () => `**Iniciar y cerrar sesión**\nPara entrar al panel usa tu **usuario y contraseña de maestro**. Si no los tienes o los olvidaste, pídeselos al coordinador del laboratorio.\nLos **alumnos** entran en la PC con su **matrícula** y su contraseña (la primera vez, con su código de activación).\nPara salir, pulsa **Cerrar sesión** en el menú lateral. Por seguridad, si recargas la página tendrás que entrar de nuevo.`
+  },
+  {
+    id: 'about',
+    keys: ['labcontrol', 'lab control', 'sistema', 'proyecto', 'plataforma', 'pagina', 'aplicacion', 'portal', 'esto'],
+    answer: () => `**LabControl** sirve para **supervisar el uso responsable de las computadoras del laboratorio**.\n\nCon él puedes:\n• Ver qué aplicación usa cada estudiante y durante cuánto tiempo.\n• Detectar actividades **no permitidas** (juegos, videos, redes sociales).\n• Elegir entre **Solo alertas** o **Bloqueo activo**.\n• Revisar reportes, incluida la actividad registrada cuando el servidor estaba apagado.\n\nNo registra contraseñas, mensajes ni teclas.`
+  },
+  {
+    id: 'dashboard',
+    keys: ['inicio', 'resumen', 'panel', 'tarjetas', 'metricas', 'grafica', 'uso academico', 'actualizar', 'equipos conectados', 'tiempo por aplicacion'],
+    view: 'dashboard',
+    answer: () => `**Inicio** es la pantalla principal. Ahí encuentras:\n• **Tarjetas** con las sesiones activas, los equipos conectados, las alertas y el porcentaje de uso académico.\n• **Actividad reciente**: estudiante, equipo, aplicación, tiempo y estado.\n• **Tiempo por aplicación**: una gráfica con los minutos de cada programa.\n\nLos datos se actualizan solos cada 5 segundos.`
+  },
+  {
+    id: 'activity',
+    keys: ['sesiones', 'actividad', 'actividades', 'tabla', 'historial', 'que estan haciendo', 'que usan', 'login pendiente'],
+    view: 'activity',
+    answer: () => `En **Sesiones** está la tabla completa: **estudiante**, **equipo**, **aplicación**, **tiempo** y **estado**.\n• **Permitido**: uso académico o autorizado.\n• **No permitido**: actividad que conviene revisar.\n• **Requiere login**: la PC está prendida pero el alumno aún no inicia sesión en LabControl.`
+  },
+  {
+    id: 'reset',
+    keys: ['olvide mi contrasena', 'olvido mi contrasena', 'olvido su contrasena', 'olvide la contrasena', 'olvido la contrasena', 'olvido', 'olvide', 'olvidaron', 'restablecer', 'restablezco', 'codigo', 'codigo de activacion', 'activacion', 'activar', 'nueva contrasena', 'contrasena del alumno', 'matricula'],
+    view: 'students',
+    answer: () => `**Si un alumno olvida su contraseña:**\n1. Abre **Usuarios** y búscalo por nombre o matrícula.\n2. Pulsa **Restablecer** y luego **¿Confirmar?**.\n3. Aparece un **código nuevo**: dáselo en persona.\n4. El alumno entra en la PC con su **matrícula** y ese código, y crea una contraseña nueva.\n\nEl código sirve una sola vez, vence en 14 días y la contraseña anterior deja de funcionar. Queda registrado quién lo restableció.`
+  },
+  {
+    id: 'groups',
+    keys: ['grupo', 'grupos', 'clase', 'clases', 'carrera'],
+    view: 'students',
+    answer: () => `El **grupo** de cada alumno aparece debajo de su nombre, junto a su matrícula, en Inicio, Sesiones y Usuarios. Viene de la lista de la escuela que importa el coordinador.\nEn **Usuarios** puedes escribir el grupo en el buscador para ver solo a sus alumnos.`
+  },
+  {
+    id: 'report',
+    keys: ['reporte', 'reportes', 'imprimir', 'impresion', 'imprimo', 'pdf', 'informe'],
+    view: 'report',
+    answer: () => `En **Reportes**:\n1. Elige el periodo: hoy, ayer, últimos 7 o 30 días.\n2. Verás a todos los alumnos con su tiempo total y lo no permitido. Pulsa un alumno (o elígelo en la lista) para ver cuánto usó cada aplicación.\n3. Pulsa **Imprimir** para imprimirlo o guardarlo como PDF.\n\nAbajo está **Actividad sin conexión**, con lo que registraron las PCs mientras el servidor estaba apagado.`
+  },
+  {
+    id: 'offline',
+    keys: ['sin conexion', 'sin servidor', 'servidor apagado', 'apagado', 'offline', 'registro', 'alterada', 'faltan entradas', 'reiniciado', 'integro'],
+    view: 'report',
+    answer: () => `Si el servidor está apagado, las PCs **se usan normal y no bloquean nada**, pero guardan qué aplicaciones se abrieron. Cuando el servidor vuelve, lo envían y aparece en **Reportes > Actividad sin conexión**.\n\nComo sin servidor no hay inicio de sesión, esa actividad se identifica por **PC y usuario de Windows**.\nSi ves **alterada**, **faltan entradas** o **registro reiniciado**, alguien pudo modificar o borrar el registro de esa PC.`
+  },
+  {
+    id: 'internet',
+    keys: ['internet', 'sin red', 'wifi', 'red'],
+    answer: () => `LabControl **no necesita internet**. Las PCs, el servidor y tu laptop se comunican por la red del laboratorio. Si se cae el internet pero el router sigue prendido, todo funciona igual. Este asistente también funciona sin internet.`
+  },
+  {
+    id: 'students',
+    keys: ['usuarios', 'usuario', 'estudiantes', 'estudiante', 'alumnos', 'alumno', 'lista', 'cuentas', 'cuenta'],
+    view: 'students',
+    answer: () => `En **Usuarios** ves a los estudiantes con el equipo que usan y su estado:\n• **Sesión activa**: todo en orden.\n• **Alerta pendiente**: tiene una actividad por revisar.\n\nLas cuentas de alumnos y maestros las da de alta el coordinador del laboratorio.`
+  },
+  {
+    id: 'settings',
+    keys: ['configuracion', 'configurar', 'ajustes', 'ajustar', 'bloqueo', 'bloquear', 'solo alertas', 'regla', 'reglas', 'prohibir', 'pagina prohibida', 'dominio', 'quitar regla', 'borrar regla', 'eliminar regla', 'desprohibir'],
+    view: 'settings',
+    answer: () => `En **Configuración** ajustas las reglas del laboratorio:\n• **Solo alertas**: el panel avisa, pero no se cierra nada.\n• **Bloqueo activo**: la PC cierra la pestaña o la aplicación no permitida.\n• **Agregar regla**: escribe un dominio (youtube.com), un sufijo (.io) o una palabra para prohibirla.\n• **Quitar regla**: pulsa la **✕** de su etiqueta.\n\nCada cambio queda registrado con tu usuario.`
+  },
+  {
+    id: 'exceptions',
+    keys: ['excepcion', 'excepciones', 'permitir', 'desbloquear', 'autorizar'],
+    view: 'settings',
+    answer: () => `Una **excepción** permite algo que normalmente está prohibido, por ejemplo **YouTube** o **canva.com** para una clase que lo necesita.\nEn **Configuración**, escríbela en "Permitir una página o app como excepción" y pulsa **Permitir**. Para quitarla, pulsa la **✕** de su etiqueta.\nQueda visible en Excepciones activas y registrada con tu usuario.`
+  },
+  {
+    id: 'alerts',
+    keys: ['alerta', 'alertas', 'no permitido', 'no permitida', 'rojo', 'advertencia'],
+    view: 'activity',
+    answer: () => {
+      const alerts = activities.filter(activity => !activity.allowed && activity.sessionId !== null);
+      const now = alerts.length
+        ? `Ahora mismo hay **${alerts.length}**: ${alerts.map(a => `${a.name} (${a.app})`).join(', ')}.`
+        : 'Ahora mismo **no hay alertas**.';
+      return `Una **alerta** aparece cuando un estudiante usa algo **no permitido** (juegos, videos o una página prohibida). Se ven en la tarjeta **Alertas** de Inicio y en **Sesiones**, marcadas como No permitido.\n\n${now}`;
+    }
+  },
+  {
+    id: 'assistant',
+    keys: ['asistente', 'ia', 'inteligencia artificial', 'chat', 'bot'],
+    answer: () => `Soy el **asistente de ayuda de LabControl**. Puedo explicarte cómo usar cada sección, decirte dónde encontrar algo y resumir la actividad del laboratorio.\n\nNo soy una inteligencia artificial: respondo con información guardada en el panel. Funciono sin internet y no envío datos a ningún lado.`
+  },
+  {
+    id: 'privacy',
+    keys: ['privacidad', 'privado', 'ficticio', 'ficticios', 'reales', 'teclas', 'espia', 'espiar', 'seguro', 'seguridad', 'transparente'],
+    answer: () => `LabControl muestra **qué aplicación o ventana** usa cada PC y durante cuánto tiempo. **No registra contraseñas, mensajes, teclas ni contenido privado.**\nLas reglas y excepciones solo las cambia un maestro con sesión, y cada cambio queda registrado.${LIVE_DATA ? '' : '\n\nEsta es una demostración: los datos que ves son ficticios.'}`
+  },
+  {
+    id: 'mobile',
+    keys: ['celular', 'movil', 'telefono', 'tablet', 'laptop'],
+    answer: () => `Puedes abrir el panel desde tu laptop, tablet o celular, siempre que estés conectado a **la red del laboratorio**. En pantallas pequeñas el menú aparece abajo.`
+  }
+];
+
+const helpMenu = `Puedo ayudarte con:\n• **¿Qué es LabControl?** y para qué sirve.\n• **Dónde ver** sesiones, alertas, reportes o usuarios.\n• **Cómo** bloquear páginas, poner excepciones o imprimir un reporte.\n• **Resumir** la actividad o **detectar alertas**.\n\nEscribe tu pregunta o usa los botones de abajo.`;
+
+function localHelp(question) {
+  const q = normalizeText(question);
+  const padded = ` ${q} `;
+  const words = q.split(' ').filter(Boolean);
+
+  if (/^(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|que tal)\b/.test(q) && words.length <= 4) {
+    return { text: `¡Hola! Soy el asistente de LabControl. ${helpMenu}` };
+  }
+  if (/^(ayuda|help|menu|opciones)$/.test(q) || q.includes('que puedes hacer') || q.includes('en que me ayudas')) {
+    return { text: helpMenu };
+  }
+  if (/^(gracias|muchas gracias|ok|vale|perfecto)$/.test(q)) {
+    return { text: '¡Con gusto! Si tienes otra duda sobre LabControl, aquí estoy.' };
+  }
+  if (/\b(que|quien) eres\b/.test(q) || q.includes('como te llamas')) {
+    return { text: helpTopics.find(topic => topic.id === 'assistant').answer() };
+  }
+
+  const hasCue = helpCues.some(cue => padded.includes(` ${cue}`));
+  if (!hasCue) return null;
+
+  // El tema con la coincidencia mas especifica (la frase mas larga) gana.
+  let best = null;
+  let bestScore = 0;
+  helpTopics.forEach(topic => {
+    topic.keys.forEach(key => {
+      if (padded.includes(` ${key} `) && key.length > bestScore) {
+        best = topic;
+        bestScore = key.length;
+      }
+    });
+  });
+  if (!best) return null;
+  return { text: best.answer(), view: best.view };
+}
 
 function formatAiText(text) {
   return String(text)
@@ -180,55 +1202,73 @@ function formatAiText(text) {
     .replace(/\n/g, '<br>');
 }
 
-function addAiMessage(text, role = 'assistant') {
-  aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${formatAiText(text)}</div>`);
+function actionButton(view) {
+  if (!view || !viewNames[view]) return '';
+  return `<br><button type="button" class="ai-action" data-go="${view}">Ir a ${viewNames[view]} →</button>`;
+}
+
+function addAiMessage(text, role = 'assistant', view) {
+  aiMessages.insertAdjacentHTML('beforeend', `<div class="ai-message ${role}">${formatAiText(text)}${actionButton(view)}</div>`);
   aiMessages.scrollTop = aiMessages.scrollHeight;
 }
 
-function answerAi(question) {
-  const normalized = question.toLowerCase();
-  const alerts = activities.filter(activity => !activity.allowed);
-  const academic = activities.filter(activity => activity.allowed);
+// Respuestas calculadas con los datos que el panel tiene en este momento.
+const dataKeywords = ['resum', 'alerta', 'revis', 'modulo', 'categor', 'quien', 'detect', 'como va', 'estado del laboratorio', 'hoy'];
 
-  if (normalized.includes('alerta') || normalized.includes('revis')) {
-    return `Detecté **${alerts.length} alerta pendiente**: ${alerts.map(activity => `${activity.name} en ${activity.pc} usó ${activity.app} durante ${activity.time}`).join('. ')}. Recomiendo revisarla con el docente antes de tomar una decisión.`;
+function answerAi(question) {
+  const normalized = normalizeText(question);
+  const withSession = activities.filter(activity => activity.sessionId !== null);
+  const pending = activities.length - withSession.length;
+  const alerts = withSession.filter(activity => !activity.allowed);
+  const allowed = withSession.filter(activity => activity.allowed);
+  const source = LIVE_DATA ? '' : ' (datos de demostración)';
+
+  if (!activities.length) {
+    return 'Todavía no hay equipos reportando. Cuando las PCs del laboratorio inicien sesión, aquí podré resumir su actividad.';
   }
-  if (normalized.includes('módulo') || normalized.includes('modulo') || normalized.includes('categor')) {
-    return `**Módulos identificados:**\nAcadémico: Microsoft Word y PowerPoint (${academic.length} sesiones permitidas).\nNavegación: Google Chrome (uso permitido en la demo).\nEntretenimiento: Minecraft, marcado para revisar. Estos módulos ayudan a explicar el panel sin revisar contenido privado.`;
+  if (normalized.includes('alerta') || normalized.includes('revis') || normalized.includes('detect')) {
+    if (!alerts.length) return `No hay alertas en este momento${source}. Todas las sesiones activas tienen uso permitido.`;
+    return `Detecté **${alerts.length} ${alerts.length === 1 ? 'alerta' : 'alertas'}**${source}: ${alerts.map(a => `${a.name} en ${a.pc} usa ${a.app} (${a.time})`).join('; ')}. Conviene revisarlas antes de tomar una decisión.`;
+  }
+  if (normalized.includes('modulo') || normalized.includes('categor')) {
+    const academic = [...new Set(allowed.map(a => a.app))];
+    const flagged = [...new Set(alerts.map(a => a.app))];
+    return `**Uso por tipo**${source}:\n• **Permitido:** ${academic.length ? academic.join(', ') : 'ninguno por ahora'}.\n• **Para revisar:** ${flagged.length ? flagged.join(', ') : 'nada por ahora'}.`;
   }
   if (normalized.includes('quien') || normalized.includes('alumno') || normalized.includes('estudiante')) {
-    return `La actividad que requiere atención es la de **Sofia Torres** en ${alerts[0].pc}, por ${alerts[0].app}. El resto de las sesiones visibles están clasificadas como permitidas.`;
+    if (!alerts.length) return `Ningún estudiante requiere atención ahora${source}.`;
+    return `Requieren atención${source}: ${alerts.map(a => `**${a.name}** (${a.pc}, ${a.app})`).join(', ')}. El resto de las sesiones tienen uso permitido.`;
   }
-  return `Resumen del laboratorio: hay **12 sesiones activas**, 18 equipos conectados y 86% de uso académico en los datos de demostración. ${academic.map(activity => `${activity.name} usa ${activity.app}`).join(', ')}. ${alerts.length ? `Hay ${alerts.length} actividad marcada para revisar: ${alerts[0].app}.` : ''}`;
+  return `**Resumen del laboratorio**${source}: ${withSession.length} ${withSession.length === 1 ? 'sesión activa' : 'sesiones activas'}, ${allowed.length} con uso permitido y ${alerts.length} para revisar${alerts.length ? ` (${alerts.map(a => `${a.name} con ${a.app}`).join(', ')})` : ''}.${pending ? ` Además, ${pending} ${pending === 1 ? 'PC espera' : 'PCs esperan'} que el alumno inicie sesión.` : ''}`;
 }
 
-async function askAi(question) {
+function askAi(question) {
   const cleanQuestion = question.trim();
   if (!cleanQuestion) return;
   addAiMessage(cleanQuestion, 'user');
-  if (!AI_API_URL) {
-    window.setTimeout(() => addAiMessage(answerAi(cleanQuestion)), 260);
-    return;
-  }
 
-  const loading = document.createElement('div');
-  loading.className = 'ai-message';
-  loading.textContent = 'Analizando la actividad...';
-  aiMessages.append(loading);
-  aiMessages.scrollTop = aiMessages.scrollHeight;
-  try {
-    const response = await fetch(AI_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: cleanQuestion, activities })
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || 'No fue posible contactar al asistente.');
-    loading.innerHTML = formatAiText(payload.reply);
-  } catch (error) {
-    loading.textContent = `${error.message} La demo local seguira disponible.`;
+  let reply;
+  const help = localHelp(cleanQuestion);
+  if (help) {
+    reply = help;
+  } else if (dataKeywords.some(key => normalizeText(cleanQuestion).includes(key))) {
+    reply = { text: answerAi(cleanQuestion) };
+  } else {
+    reply = { text: `No estoy seguro de haber entendido tu pregunta. ${helpMenu}` };
   }
+  window.setTimeout(() => addAiMessage(reply.text, 'assistant', reply.view), 260);
 }
+
+// Botones "Ir a ..." dentro de las respuestas.
+aiMessages?.addEventListener('click', event => {
+  const button = event.target.closest('[data-go]');
+  if (!button) return;
+  openView(button.dataset.go);
+  if (window.innerWidth <= 760) {
+    aiPanel.classList.remove('open');
+    aiPanel.setAttribute('aria-hidden', 'true');
+  }
+});
 
 const aiToggle = document.querySelector('#ai-toggle');
 const aiClose = document.querySelector('#ai-close');
@@ -239,7 +1279,7 @@ if (aiToggle) {
     aiPanel.classList.add('open');
     aiPanel.setAttribute('aria-hidden', 'false');
     if (!aiMessages.children.length) {
-      addAiMessage('Hola, soy el asistente de LabControl. Puedo resumir la actividad, detectar alertas e identificar módulos de uso.');
+      addAiMessage('Hola, soy el asistente de LabControl. Puedo explicarte cómo usar el panel, decirte dónde encontrar cada cosa, resumir la actividad y detectar alertas.');
     }
     if (aiInput) aiInput.focus();
   });

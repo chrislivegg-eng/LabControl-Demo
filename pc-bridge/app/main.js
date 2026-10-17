@@ -1,0 +1,554 @@
+import { app, BrowserWindow, dialog, ipcMain, Menu, Tray } from 'electron';
+import { execFile } from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import { loadAgentConfig } from '../agent/config.js';
+import { resolveServerUrl } from '../agent/discovery.js';
+import { OfflineLog } from '../agent/offline-log.js';
+
+const execFileAsync = promisify(execFile);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Logo oficial de LabControl para la ventana, la barra de tareas y la bandeja.
+const APP_ICON = path.join(__dirname, 'icon.ico');
+const AGENT_CONFIG = loadAgentConfig();
+let serverUrl = AGENT_CONFIG.serverUrl;
+let networkFailures = 0;
+// Si no hay servidor (apagado o fuera de la red), la app no estorba al alumno.
+let serverOnline = false;
+let offlineChecks = 0;
+const OFFLINE_AFTER_CHECKS = 2;
+// Actividad registrada mientras no hay servidor; se envia cuando vuelve.
+const offlineLog = new OfflineLog(app.getPath('userData'));
+let offlineTimer = null;
+// Solo se registra cuando ya se confirmo que no hay servidor (no al arrancar).
+let offlineConfirmed = false;
+let uploadingOffline = null;
+const WINDOWS_USER = (() => {
+  try { return os.userInfo().username; } catch { return ''; }
+})();
+let locating = null;
+const AGENT_ID = process.env.LABCONTROL_AGENT_ID || os.hostname();
+const LOGIN_RETRY_MS = Number(process.env.LABCONTROL_LOGIN_RETRY_MS || 5000);
+const ENABLE_BLOCKING = process.argv.includes('--enable-blocking');
+// Bloqueo de login: la PC no se puede usar sin iniciar sesion.
+// Se puede apagar para pruebas arrancando con LABCONTROL_LOCK=0.
+const LOGIN_LOCK = process.env.LABCONTROL_LOCK !== '0';
+let lockActive = false;
+
+let mainWindow;
+let tray;
+let activeSession = null;
+let reportIntervalMs = 5000;
+let currentProcess = '';
+let appStartedAt = Date.now();
+let reportTimer = null;
+let pendingTimer = null;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 460,
+    height: 680,
+    resizable: false,
+    maximizable: false,
+    autoHideMenuBar: true,
+    title: 'LabControl Agent',
+    show: false,
+    backgroundColor: '#fff7f2',
+    icon: APP_ICON,
+    alwaysOnTop: !activeSession,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  mainWindow.loadFile(path.join(__dirname, 'renderer.html'));
+
+  mainWindow.on('close', event => {
+    if (!app.isQuiting) {
+      event.preventDefault();
+      if (activeSession || !serverOnline) {
+        mainWindow.hide();
+        return;
+      }
+      showLoginWindow();
+      mainWindow.webContents.send('login-required', 'Debes iniciar sesión para usar esta PC.');
+    }
+  });
+
+  // Mientras la PC esta bloqueada por falta de login, el foco regresa al login
+  // si el alumno hace clic en otro lado o intenta cambiar de ventana.
+  mainWindow.on('blur', () => {
+    if (!lockActive) return;
+    setImmediate(() => {
+      if (!lockActive || !mainWindow) return;
+      try { mainWindow.show(); mainWindow.moveTop(); mainWindow.focus(); } catch { /* ignore */ }
+    });
+  });
+  mainWindow.on('minimize', event => {
+    if (!lockActive) return;
+    event.preventDefault();
+    try { mainWindow.restore(); mainWindow.focus(); } catch { /* ignore */ }
+  });
+}
+
+function createTray() {
+  tray = new Tray(APP_ICON);
+  const menuItems = [{ label: 'Mostrar LabControl', click: () => showLoginWindow() }];
+  // En la app instalada el alumno no puede cerrar el agente desde la bandeja.
+  if (!app.isPackaged) {
+    menuItems.push({ type: 'separator' }, { label: 'Salir (solo desarrollo)', click: () => { app.isQuiting = true; app.quit(); } });
+  }
+  const contextMenu = Menu.buildFromTemplate(menuItems);
+  tray.setToolTip('LabControl Agent');
+  tray.setContextMenu(contextMenu);
+  tray.on('click', () => showLoginWindow());
+}
+
+function showLoginWindow() {
+  if (!mainWindow) return;
+  mainWindow.show();
+  // Sin sesion y con servidor encendido: se bloquea la PC hasta iniciar sesion.
+  if (!activeSession && serverOnline) {
+    setLock(true);
+  } else {
+    setLock(false);
+    mainWindow.setAlwaysOnTop(!activeSession);
+    mainWindow.focus();
+  }
+}
+
+// Pantalla de bloqueo: sin sesion la PC no se puede usar. Ocupa toda la
+// pantalla, se queda siempre encima y recupera el foco. Se suelta al iniciar
+// sesion o si el servidor se apaga (para no dejar la PC trabada).
+function setLock(active) {
+  if (!mainWindow) return;
+  if (active && !LOGIN_LOCK) active = false;
+  lockActive = active;
+  try {
+    if (active) {
+      mainWindow.setMinimizable(false);
+      mainWindow.setClosable(false);
+      mainWindow.setSkipTaskbar(true);
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      mainWindow.setKiosk(true);
+      mainWindow.moveTop();
+      mainWindow.focus();
+    } else {
+      mainWindow.setKiosk(false);
+      mainWindow.setAlwaysOnTop(false);
+      mainWindow.setVisibleOnAllWorkspaces(false);
+      mainWindow.setSkipTaskbar(false);
+      mainWindow.setMinimizable(true);
+      mainWindow.setClosable(true);
+    }
+  } catch { /* algunas APIs no aplican en todos los SO */ }
+}
+
+// Busca el servidor (IP del archivo o busqueda firmada en la red).
+function locateServer() {
+  if (!locating) {
+    locating = resolveServerUrl(AGENT_CONFIG, {
+      log: message => mainWindow?.webContents.send('agent-status', message)
+    }).then(url => {
+      serverUrl = url;
+      networkFailures = 0;
+      return url;
+    }).finally(() => {
+      locating = null;
+    });
+  }
+  return locating;
+}
+
+async function fetchJson(pathname, options = {}) {
+  let response;
+  try {
+    response = await fetch(`${serverUrl}${pathname}`, { ...options, signal: AbortSignal.timeout(8000) });
+    networkFailures = 0;
+  } catch (error) {
+    // Tras varios fallos seguidos el servidor pudo cambiar de IP: buscarlo otra vez.
+    networkFailures += 1;
+    if (networkFailures >= 3) locateServer().catch(() => {});
+    throw error;
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || `Error ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+// Si el servidor se reinicio, la sesion ya no existe: se pide login otra vez.
+function requireLoginAgain(message) {
+  activeSession = null;
+  if (reportTimer) clearTimeout(reportTimer);
+  reportTimer = null;
+  serverOnline = true;
+  showLoginWindow();
+  mainWindow?.webContents.send('login-required', message);
+  startPendingLoop();
+}
+
+function setServerOnline(online) {
+  if (online) {
+    offlineChecks = 0;
+    offlineConfirmed = false;
+    if (!serverOnline) {
+      serverOnline = true;
+      tray?.setToolTip('LabControl Agent - conectado');
+    }
+    uploadOfflineLog();
+    return;
+  }
+  offlineChecks += 1;
+  if (serverOnline && offlineChecks < OFFLINE_AFTER_CHECKS) return;
+  serverOnline = false;
+  offlineConfirmed = true;
+  tray?.setToolTip('LabControl Agent - sin servidor: registrando actividad');
+  if (!activeSession && mainWindow?.isVisible()) {
+    setLock(false);
+    mainWindow.setAlwaysOnTop(false);
+    mainWindow.hide();
+  }
+}
+
+// Envia al servidor lo registrado sin conexion (una sola subida a la vez).
+function uploadOfflineLog() {
+  if (uploadingOffline || !offlineLog.pendingCount) return;
+  uploadingOffline = offlineLog.flush(entries => fetchJson('/api/agent/offline-log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentId: AGENT_ID, pc: os.hostname(), windowsUser: WINDOWS_USER, entries })
+  })).then(() => {
+    mainWindow?.webContents.send('agent-status', 'Actividad sin conexión enviada al servidor.');
+  }).catch(error => {
+    mainWindow?.webContents.send('agent-status', `No se pudo enviar la actividad sin conexión: ${error.message}`);
+  }).finally(() => {
+    uploadingOffline = null;
+  });
+}
+
+// Mientras no hay servidor se registra la ventana activa (no se bloquea nada).
+async function offlineTick() {
+  if (!offlineConfirmed) offlineLog.closeCurrent();
+  if (serverOnline || !offlineConfirmed) return;
+  try {
+    const activeWindow = await getActiveWindow();
+    offlineLog.record({
+      processName: activeWindow.processName,
+      title: activeWindow.app,
+      windowsUser: WINDOWS_USER,
+      student: activeSession?.username || ''
+    });
+  } catch {
+    // Si no se pudo leer la ventana, se intenta en el siguiente ciclo.
+  }
+}
+
+function startOfflineRecorder() {
+  if (offlineTimer) return;
+  offlineTimer = setInterval(offlineTick, reportIntervalMs);
+}
+
+async function reportLoginPending() {
+  try {
+    await fetchJson('/api/agent/pending', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agentId: AGENT_ID,
+        pc: os.hostname(),
+        pid: process.pid
+      })
+    });
+    setServerOnline(true);
+  } catch (error) {
+    setServerOnline(false);
+    mainWindow?.webContents.send('agent-status', `Sin conexión con servidor: ${error.message}`);
+  }
+}
+
+// Mientras no haya sesion: si el servidor responde se pide login; si no, la
+// ventana se queda oculta y se vuelve a intentar.
+async function pendingTick() {
+  if (activeSession) return;
+  await reportLoginPending();
+  if (serverOnline && !activeSession) showLoginWindow();
+}
+
+function startPendingLoop() {
+  if (pendingTimer) return;
+  pendingTick();
+  pendingTimer = setInterval(pendingTick, LOGIN_RETRY_MS);
+}
+
+function stopPendingLoop() {
+  if (pendingTimer) clearInterval(pendingTimer);
+  pendingTimer = null;
+}
+
+async function getActiveWindow() {
+  if (process.platform !== 'win32') {
+    return {
+      app: 'Demo local',
+      processName: 'demo',
+      pid: process.pid
+    };
+  }
+
+  const script = `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class Win32 {
+  [DllImport("user32.dll")]
+  public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")]
+  public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+}
+"@
+$hwnd = [Win32]::GetForegroundWindow()
+$processId = 0
+[Win32]::GetWindowThreadProcessId($hwnd, [ref]$processId) | Out-Null
+$p = Get-Process -Id $processId
+@{
+  processName = $p.ProcessName
+  pid = $p.Id
+  title = $p.MainWindowTitle
+} | ConvertTo-Json -Compress
+`;
+
+  const { stdout } = await execFileAsync('powershell.exe', [
+    '-NoProfile',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-Command',
+    script
+  ], { windowsHide: true });
+
+  const windowInfo = JSON.parse(stdout.trim());
+  return {
+    app: windowInfo.title || windowInfo.processName || 'Sin titulo',
+    processName: windowInfo.processName,
+    pid: Number(windowInfo.pid)
+  };
+}
+
+async function getConfig() {
+  const config = await fetchJson('/api/agent/config');
+  reportIntervalMs = Number(config.reportIntervalMs || reportIntervalMs);
+  return config;
+}
+
+function normalizeAppName(name = '') {
+  return String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function isBrowserProcess(processName = '') {
+  return ['chrome', 'msedge', 'opera', 'operagx', 'firefox', 'brave'].includes(normalizeAppName(processName));
+}
+
+async function closeBrowserTab(activeWindow) {
+  if (process.platform !== 'win32' || !activeWindow.pid) return;
+  const script = `
+Add-Type -AssemblyName Microsoft.VisualBasic
+Add-Type -AssemblyName System.Windows.Forms
+[Microsoft.VisualBasic.Interaction]::AppActivate([int]${activeWindow.pid}) | Out-Null
+Start-Sleep -Milliseconds 180
+[System.Windows.Forms.SendKeys]::SendWait('^w')
+`;
+  await execFileAsync('powershell.exe', [
+    '-NoProfile',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-Command',
+    script
+  ], { windowsHide: true });
+}
+
+// Procesos que nunca se cierran aunque coincidan con una regla.
+const PROTECTED_PROCESSES = new Set([
+  'explorer', 'system', 'svchost', 'winlogon', 'csrss', 'lsass', 'services', 'dwm',
+  'taskmgr', 'labcontrolagent', 'electron', 'powershell', 'conhost'
+]);
+
+async function blockProcess(activeWindow) {
+  if (process.platform !== 'win32' || !activeWindow.pid) return;
+  if (activeWindow.pid === process.pid) return;
+  if (PROTECTED_PROCESSES.has(normalizeAppName(activeWindow.processName))) return;
+  await execFileAsync('taskkill.exe', ['/PID', String(activeWindow.pid), '/F'], { windowsHide: true });
+}
+
+async function applyBlock(activeWindow, result) {
+  if (!result.blockEnabled || !result.blocked) return;
+  // En un navegador solo se cierra la pestana, nunca el navegador completo.
+  if (isBrowserProcess(activeWindow.processName)) {
+    await closeBrowserTab(activeWindow);
+    return;
+  }
+  await blockProcess(activeWindow);
+}
+
+async function reportLoop() {
+  if (!activeSession) return;
+
+  try {
+    const config = await getConfig();
+    const activeWindow = await getActiveWindow();
+
+    if (activeWindow.processName !== currentProcess) {
+      currentProcess = activeWindow.processName;
+      appStartedAt = Date.now();
+    }
+
+    const activeSeconds = Math.round((Date.now() - appStartedAt) / 1000);
+    const result = await fetchJson('/api/agent/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agentId: AGENT_ID,
+        sessionToken: activeSession.sessionToken,
+        pc: os.hostname(),
+        app: activeWindow.app,
+        processName: activeWindow.processName,
+        pid: activeWindow.pid,
+        activeSeconds
+      })
+    });
+
+    setServerOnline(true);
+    await applyBlock(activeWindow, result);
+
+    mainWindow?.webContents.send('agent-status', `Reportando: ${activeWindow.processName || activeWindow.app} · bloqueado=${result.blocked}`);
+  } catch (error) {
+    if (error.status === 401) {
+      requireLoginAgain('La sesión terminó. Vuelve a iniciar sesión.');
+      return;
+    }
+    if (!error.status) setServerOnline(false);
+    mainWindow?.webContents.send('agent-status', error.message);
+  }
+  if (activeSession) reportTimer = setTimeout(reportLoop, reportIntervalMs);
+}
+
+function startReporting() {
+  if (reportTimer) clearTimeout(reportTimer);
+  reportLoop();
+}
+
+ipcMain.handle('agent:get-context', () => ({
+  serverUrl,
+  pc: os.hostname(),
+  agentId: AGENT_ID,
+  loggedIn: Boolean(activeSession),
+  displayName: activeSession?.displayName || ''
+}));
+
+// Token temporal cuando el alumno entra con codigo y debe crear su contrasena.
+let pendingSetup = null;
+
+function finishLogin(payload) {
+  pendingSetup = null;
+  activeSession = payload;
+  stopPendingLoop();
+  setLock(false);
+  mainWindow.setAlwaysOnTop(false);
+  mainWindow.webContents.send('login-success', payload);
+  startReporting();
+  setTimeout(() => mainWindow.hide(), 1200);
+  return payload;
+}
+
+ipcMain.handle('agent:login', async (_event, credentials) => {
+  const username = String(credentials?.username || '').trim();
+  const password = String(credentials?.password || '');
+
+  if (!username || !password) {
+    throw new Error('Escribe tu matrícula y tu contraseña o código.');
+  }
+
+  const payload = await fetchJson('/api/agent/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      agentId: AGENT_ID,
+      pc: os.hostname(),
+      username,
+      password
+    })
+  });
+
+  if (payload.mustSetPassword) {
+    pendingSetup = { setupToken: payload.setupToken };
+    return { mustSetPassword: true, displayName: payload.displayName };
+  }
+  return finishLogin(payload);
+});
+
+ipcMain.handle('agent:set-password', async (_event, data) => {
+  const newPassword = String(data?.newPassword || '');
+  if (!pendingSetup) throw new Error('Vuelve a entrar con tu matrícula y tu código.');
+  if (newPassword !== String(data?.confirmPassword || '')) throw new Error('Las contraseñas no coinciden.');
+
+  try {
+    const payload = await fetchJson('/api/agent/set-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ setupToken: pendingSetup.setupToken, newPassword })
+    });
+    return finishLogin(payload);
+  } catch (error) {
+    if (error.status === 401) pendingSetup = null;
+    throw error;
+  }
+});
+
+// Mismo id que el instalador (build.appId) para que Windows use el icono de LabControl.
+app.setAppUserModelId('edu.colegiociudadano.labcontrol.agent');
+
+// Solo una copia del agente por PC.
+const hasInstanceLock = app.requestSingleInstanceLock();
+if (!hasInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => showLoginWindow());
+}
+
+app.whenReady().then(() => {
+  if (!hasInstanceLock) return;
+  Menu.setApplicationMenu(null);
+  createWindow();
+  createTray();
+  startOfflineRecorder();
+  locateServer().catch(() => {}).finally(() => startPendingLoop());
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  showLoginWindow();
+});
+
+app.on('window-all-closed', event => {
+  event?.preventDefault?.();
+});
+
+app.on('before-quit', () => {
+  app.isQuiting = true;
+  offlineLog.closeCurrent();
+  if (reportTimer) clearTimeout(reportTimer);
+  if (pendingTimer) clearInterval(pendingTimer);
+});
+
+process.on('uncaughtException', error => {
+  dialog.showErrorBox('LabControl Agent', error.message);
+});

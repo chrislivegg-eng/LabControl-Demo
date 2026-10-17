@@ -2,3 +2,19 @@
 .env.*
 .vercel
 node_modules
+pc-bridge/dist
+pc-bridge/server/audit.log
+pc-bridge/server/users.json
+pc-bridge/tools/*.csv
+pc-bridge/server/discovery-private.pem
+pc-bridge/server/offline-activity.jsonl
+pc-bridge/server/offline-state.json
+pc-bridge/server/servidor.log
+pc-bridge/server/servicio-labcontrol.cmd
+pc-bridge/server/classes.json
+pc-bridge/tools/*.xlsx
+**/codigos-activacion-*.html
+*.xlsx
+pc-bridge/server/history/
+# Copias locales de Tailwind y Chart.js (se descargan con npm run vendor)
+assets/vendor/

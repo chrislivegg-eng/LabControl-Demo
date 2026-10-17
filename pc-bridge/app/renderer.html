@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LabControl</title>
+    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="stylesheet" href="renderer.css" />
+  </head>
+  <body>
+    <main class="agent-shell">
+      <section class="login-card">
+        <header class="brand">
+          <img class="brand-mark" src="logo.png" alt="" />
+          <h1><span class="lab">Lab</span><span class="control">Control</span></h1>
+          <p class="eyebrow">Colegio Ciudadano</p>
+          <p class="subtitle">Inicia sesión para usar esta PC del laboratorio.</p>
+        </header>
+
+        <div class="pc-card">
+          <span>Equipo</span>
+          <strong id="pc-name">Cargando...</strong>
+        </div>
+
+        <form id="login-form" autocomplete="off">
+          <label for="username">Matrícula</label>
+          <input id="username" name="username" type="text" placeholder="DES0000" autocapitalize="characters" spellcheck="false" required />
+
+          <label for="password">Contraseña</label>
+          <input id="password" name="password" type="password" placeholder="Tu contraseña" required />
+          <p class="hint">¿Primera vez o te restablecieron el acceso? Escribe el código de activación que te dieron.</p>
+
+          <p class="message" id="message">Esta ventana se mantiene activa hasta iniciar sesión.</p>
+          <button type="submit" id="login-button">Iniciar sesión</button>
+        </form>
+
+        <form id="setup-form" autocomplete="off" hidden>
+          <p class="setup-title" id="setup-title">Crea tu contraseña</p>
+          <p class="hint">Mínimo 8 caracteres y sin tu matrícula. Solo tú la sabrás; si la olvidas, tu maestro puede darte un código nuevo.</p>
+
+          <label for="new-password">Nueva contraseña</label>
+          <input id="new-password" name="new-password" type="password" minlength="8" required />
+
+          <label for="confirm-password">Repite la contraseña</label>
+          <input id="confirm-password" name="confirm-password" type="password" minlength="8" required />
+
+          <p class="message" id="setup-message"></p>
+          <button type="submit" id="setup-button">Guardar contraseña</button>
+        </form>
+
+        <p class="status" id="status">Conectando con LabControl...</p>
+      </section>
+    </main>
+    <script src="renderer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "reportIntervalMs": 5000,
+  "blockEnabled": false,
+  "blockedApps": [
+    "minecraft",
+    "youtube",
+    "roblox",
+    "steam",
+    "epicgameslauncher",
+    "discord"
+  ],
+  "blockedPages": [
+    "youtube"
+  ],
+  "allowedApps": [
+    "chrome",
+    "msedge",
+    "winword",
+    "powerpnt",
+    "excel",
+    "code",
+    "python",
+    "acrord32"
+  ],
+  "exceptions": [],
+  "blockedDomains": [
+    "youtube.com",
+    "youtu.be"
+  ],
+  "blockedDomainSuffixes": [
+    ".io"
+  ],
+  "blockedKeywords": [
+    "adult",
+    "porn",
+    "xxx"
+  ]
+}

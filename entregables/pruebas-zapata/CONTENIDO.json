@@ -1,0 +1,33 @@
+{
+  "createdAt": "2026-09-12T22:28:59.817Z",
+  "sourceBranch": "pc-agent-bridge",
+  "sourceCommit": "2c0356866531570b36bf77254ec2eb940b3613ab",
+  "includesUncommittedChanges": true,
+  "note": "Copia de pruebas local. Reglas en solo alertas y dos cuentas demo. Windows pendiente de validar.",
+  "files": {
+    "index.html": "8accfdd19e405173a119a25ac2582ce8c995740f1672fb49e2776c9b6b55f0f7",
+    "app.js": "7599f3c9e84b7653e5a648b146fcfebdef57726bfde3af38f0b01f19cf0f8ae0",
+    "styles.css": "2cc47db4059fa704416156282e54196a45732f1fba5a49344c9a97cd63e597fb",
+    "mobile.css": "e301ccfd61a86b8b219d3cf26c4f3c49399ee01dbe75d492ed48f7e99efc0e93",
+    "assets/favicon.svg": "dfb8599985ba500fcee35f555efbdee75b852b591107d5754b1e2c87adf98976",
+    "assets/favicon.png": "ec62fe8937d4f3965c71eb6e3022739bcab65d3afdd8e0434fc14f5ecec8bb30",
+    "assets/cyber-lab-background.png": "e228918ef779e83a7f48344e19c35b2829ff5018e05c4ca7a1a8085ad0f42a56",
+    "assets/labcontrol-wordmark.png": "954df85c68aab74fe2f407ba0b3d9746e2209f59b8f08b32529b630bde8d3cb8",
+    "pc-bridge/package.json": "7f84fd377751eb203b7e02336a6feb23ad7ee947904445732b6c116b7124deae",
+    "pc-bridge/package-lock.json": "616e936bbfd3dab09d4483014159ef5a28a043e1d8963efd58195a6fe3152646",
+    "pc-bridge/server/index.js": "c28828e00dcd2081b4c13e24426599e66987bf53ec74cc6aca572b0a1c088342",
+    "pc-bridge/agent/windows-agent.js": "a15f529a52a829bae296bcb22811834768b06d72402161a5669ec6bc510d8fe9",
+    "pc-bridge/app/main.js": "9be194b12b3b3036da3e5f6e13b0678ef1166d75e764bf3490ecbb18966f7268",
+    "pc-bridge/app/preload.cjs": "0adb9ab12deedd64093c6e2599f22f83cda87be8604da8d04db37f7c7e208f94",
+    "pc-bridge/app/renderer.html": "ec33d0f4d6297596413993d3a16edd5c93d4a830f628ac9c67a944a150071156",
+    "pc-bridge/app/renderer.css": "c5525cf73e398eabfedead6c87e122225e482ad2940180ab1eb0d113ed954a10",
+    "pc-bridge/app/renderer.js": "181e4ce679278360b0aa61d150e3c93fa85fd8d6512d411907a0324a15b8fef6",
+    "pc-bridge/app/tray.png": "2a9108cc4158723099b6d0976d7cf936af60f3e00b06cc1a7efd3e12aae7a0ee",
+    "pc-bridge/server/users.json": "aa5f048de315133400855337c551aba22a2da856905993a1b27807650369719e",
+    "pc-bridge/server/rules.json": "e6fa6991f29728bdfb3452b6b21ab2868cab22988ec7ed1f83d6074ed8af06d7",
+    "01-Preparar.cmd": "78a1e56b2831491fcd96b24278023a91128103604ed11ecd103c9c21d2b5b329",
+    "02-Iniciar-servidor.cmd": "b6a6a0806661ac036c7a1b4cd2c80aeb3067c11c075de0290761dc9e7d564b63",
+    "03-Abrir-app.cmd": "2614995df619d7021cf0fe30d7992921c16e3fd0328048c9077f3cffb5bd6dc8",
+    "LEEME-PRIMERO.txt": "24d11f77bb600357ac946b61066cedd1fb5cef196948d2176134223299acf9e0"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "labcontrol-pc-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "mock-agent": "node agent/mock-agent.js",
+    "windows-agent": "node agent/windows-agent.js",
+    "agent-app": "electron app/main.js",
+    "server-app": "electron app/server-window.js",
+    "build:win": "electron-builder --win nsis",
+    "build:win-portable": "electron-builder --win portable",
+    "users": "node tools/users.js",
+    "vendor": "node tools/fetch-vendor.js",
+    "alumnos": "node tools/alumnos.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "description": "LabControl local PC bridge and Windows agent app prototype",
+  "main": "app/main.js",
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "edu.colegiociudadano.labcontrol.agent",
+    "productName": "LabControl Agent",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "agent/config.js",
+      "agent/discovery.js",
+      "agent/offline-log.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "LabControl-Agent-${version}-${arch}.${ext}",
+      "requestedExecutionLevel": "asInvoker",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LabControl Agent",
+      "runAfterFinish": true,
+      "include": "build/installer.nsh",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "config/labcontrol-config.json",
+        "to": "labcontrol-config.json"
+      },
+      {
+        "from": "build/vigilante.ps1",
+        "to": "vigilante.ps1"
+      }
+    ]
+  }
+}

@@ -7,8 +7,11 @@
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="mobile.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Copias locales (npm run vendor) para funcionar sin internet; si faltan, se usa el CDN. -->
+    <script src="assets/vendor/tailwindcss.js"></script>
+    <script>window.tailwind || document.write('<script src="https://cdn.tailwindcss.com"><\/script>');</script>
+    <script src="assets/vendor/chart.umd.min.js"></script>
+    <script>window.Chart || document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');</script>
   </head>
   <body>
     <main id="app">
@@ -23,11 +26,11 @@
           <h1>Supervisión de Equipos</h1>
           <p>Inicia sesión para gestionar el uso responsable de los equipos de trabajo.</p>
           <form id="login-form">
-            <label>Usuario<input id="username" value="docente" required /></label>
-            <label>Contraseña<input id="password" type="password" value="demo" required /></label>
+            <label>Usuario<input id="username" placeholder="Usuario del maestro" autocomplete="username" required /></label>
+            <label>Contraseña<input id="password" type="password" placeholder="Contraseña" autocomplete="current-password" required /></label>
             <button type="submit">Iniciar sesión <span>→</span></button>
           </form>
-          <p class="privacy-note">Esta demo usa información ficticia. No registra contraseñas, mensajes ni teclas.</p>
+          <p class="privacy-note" id="login-message">Esta demo usa información ficticia. No registra contraseñas, mensajes ni teclas.</p>
         </div>
         <p class="login-footer">Colegio Ciudadano · Proyecto de ciencias</p>
       </section>
@@ -106,11 +109,12 @@
           <!-- BARRA SUPERIOR -->
           <header class="topbar w-full">
             <div>
-              <p class="eyebrow">COLEGIO CIUDADANO · DEMO</p>
+              <p class="eyebrow" id="topbar-eyebrow">COLEGIO CIUDADANO · DEMO</p>
               <h2 id="page-title">Resumen del laboratorio</h2>
             </div>
             <div class="topbar-actions">
-              <button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span>Asistente IA</button>
+              <span class="agent-status" id="agent-status">Datos demo</span>
+              <button class="ai-toggle" id="ai-toggle" type="button"><span>✦</span>Asistente</button>
             </div>
           </header>
 
@@ -127,75 +131,74 @@
                   Actualizar datos
                 </button>
 
-                <!-- Selector de Fecha -->
-                <button class="bg-white border border-gray-100 px-4 py-2.5 rounded-xl text-xs sm:text-sm text-gray-700 font-semibold shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition w-full sm:w-auto">
-                  <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  <span id="current-date" class="truncate">Hoy, 4 de septiembre de 2026</span>
-                  <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </button>
+                <!-- Fecha de hoy (solo informativa; los periodos se eligen en Reportes) -->
+                <div class="bg-white border border-gray-100 px-4 py-2.5 rounded-xl text-xs sm:text-sm text-gray-700 font-semibold shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto">
+                  <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  <span id="current-date" class="truncate">Hoy</span>
+                </div>
               </div>
 
               <!-- Grid de Métricas Principales Estilizado -->
-              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+              <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 <!-- Tarjeta 1 -->
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
-                  <div class="absolute -right-4 -bottom-4 w-28 h-28 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
-                    <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm2 0v7h12V6H6zm3 10h6v2H9v-2z"/></svg>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
+                  <div class="absolute -right-3 -bottom-3 w-20 h-20 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
+                    <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm2 0v7h12V6H6zm3 10h6v2H9v-2z"/></svg>
                   </div>
-                  <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                  <div class="p-2 bg-orange-50 text-orange-500 rounded-xl w-fit mb-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                   </div>
                   <div>
-                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">12</span>
+                    <span id="metric-sessions" class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block mb-1">12</span>
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Sesiones activas</span>
                   </div>
                 </div>
 
                 <!-- Tarjeta 2 -->
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
-                  <div class="absolute -right-4 -bottom-4 w-28 h-28 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
-                    <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M2 4a2 2 0 012-2h16a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm0 10a2 2 0 012-2h16a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zM4 8h2v2H4V8zm4 0h2v2H8V8zm10 6h-2v2h2v-2zm-4 0h-2v2h2v-2z"/></svg>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
+                  <div class="absolute -right-3 -bottom-3 w-20 h-20 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
+                    <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M2 4a2 2 0 012-2h16a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm0 10a2 2 0 012-2h16a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zM4 8h2v2H4V8zm4 0h2v2H8V8zm10 6h-2v2h2v-2zm-4 0h-2v2h2v-2z"/></svg>
                   </div>
-                  <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                  <div class="p-2 bg-orange-50 text-orange-500 rounded-xl w-fit mb-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
                   </div>
                   <div>
-                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">18</span>
+                    <span id="metric-pcs" class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block mb-1">18</span>
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Equipos conectados</span>
                   </div>
                 </div>
 
                 <!-- Tarjeta 3 -->
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
-                  <div class="absolute -right-4 -bottom-4 w-28 h-28 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
-                    <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
+                  <div class="absolute -right-3 -bottom-3 w-20 h-20 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
+                    <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
                   </div>
-                  <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                  <div class="p-2 bg-orange-50 text-orange-500 rounded-xl w-fit mb-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                   </div>
                   <div>
-                    <span class="text-4xl font-black text-gray-900 tracking-tight block mb-1">2</span>
+                    <span id="metric-alerts" class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block mb-1">2</span>
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Alertas</span>
                   </div>
                 </div>
 
                 <!-- Tarjeta 4 -->
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
-                  <div class="absolute -right-4 -bottom-4 w-28 h-28 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
-                    <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group hover:border-orange-200 transition">
+                  <div class="absolute -right-3 -bottom-3 w-20 h-20 flex items-center justify-center text-orange-500/10 group-hover:text-orange-500/15 transition pointer-events-none">
+                    <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
                   </div>
-                  <div class="p-3 bg-orange-50 text-orange-500 rounded-2xl w-fit mb-4">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                  <div class="p-2 bg-orange-50 text-orange-500 rounded-xl w-fit mb-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
                   </div>
                   <div>
-                    <span class="text-4xl font-black text-orange-600 tracking-tight block mb-1">86%</span>
+                    <span id="metric-academic" class="text-2xl sm:text-3xl font-black text-orange-600 tracking-tight block mb-1">86%</span>
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Uso académico</span>
                   </div>
                 </div>
               </div>
               
               <!-- Grid Inferior -->
-              <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              <div class="flex flex-col gap-6">
                 <!-- Actividad reciente -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col justify-between">
                   <div>
@@ -207,6 +210,7 @@
                             <th class="pb-3 px-2">Estudiante</th>
                             <th class="pb-3 px-2">Equipo</th>
                             <th class="pb-3 px-2">Aplicación</th>
+                            <th class="pb-3 px-2">Página actual</th>
                             <th class="pb-3 px-2">Tiempo</th>
                             <th class="pb-3 px-2">Estado</th>
                           </tr>
@@ -227,16 +231,30 @@
                   </div>
                 </div>
 
-                <!-- Tiempo por aplicación -->
-                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col justify-between">
-                  <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-black text-gray-900">Tiempo por aplicación</h2>
-                    <select class="bg-gray-50 border border-gray-200 text-sm font-semibold rounded-xl px-3 py-2 text-gray-600 focus:outline-none focus:border-orange-500 transition">
-                      <option>Hoy</option>
-                      <option>Esta semana</option>
-                    </select>
-                  </div>
-                  <div class="relative h-64 w-full" id="app-bars">
+                <!-- Tiempo por aplicación (desplegable) -->
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100">
+                  <button type="button" id="usage-toggle" onclick="toggleUsagePanel()" aria-expanded="false" aria-controls="usage-panel" class="w-full flex justify-between items-center gap-3 p-6 text-left hover:bg-orange-50/40 rounded-3xl transition">
+                    <span class="flex items-center gap-3">
+                      <span class="p-2.5 bg-orange-50 text-orange-500 rounded-2xl shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                      </span>
+                      <span>
+                        <span class="block text-lg font-black text-gray-900">Tiempo por aplicación</span>
+                        <span class="block text-xs font-semibold text-gray-400" id="usage-hint">Toca para ver las estadísticas</span>
+                      </span>
+                    </span>
+                    <svg id="usage-chevron" class="w-5 h-5 text-gray-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </button>
+                  <div id="usage-panel" class="hidden px-6 pb-6">
+                    <div class="flex justify-end mb-4">
+                      <select id="usage-period" aria-label="Periodo de la gráfica" class="bg-gray-50 border border-gray-200 text-sm font-semibold rounded-xl px-3 py-2 text-gray-600 focus:outline-none focus:border-orange-500 transition">
+                        <option value="0">Hoy</option>
+                        <option value="7">Últimos 7 días</option>
+                        <option value="30">Últimos 30 días</option>
+                      </select>
+                    </div>
+                    <div class="relative h-72 w-full" id="app-bars">
+                    </div>
                   </div>
                 </div>
               </div>
@@ -257,6 +275,7 @@
                         <th class="pb-3 px-2">Estudiante</th>
                         <th class="pb-3 px-2">Equipo</th>
                         <th class="pb-3 px-2">Aplicación</th>
+                        <th class="pb-3 px-2">Página actual</th>
                         <th class="pb-3 px-2">Tiempo</th>
                         <th class="pb-3 px-2">Estado</th>
                       </tr>
@@ -276,6 +295,39 @@
               <div class="p-8 sm:p-10">
                 <!-- Cuadrícula estilizada de estudiantes directamente -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="students-list"></div>
+              </div>
+            </article>
+
+            <!-- Alumnos registrados (con el servidor del laboratorio) -->
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden roster" id="roster" hidden>
+              <div class="h-2.5 bg-gradient-to-r from-orange-600 to-orange-400 w-full"></div>
+              <div class="p-8 sm:p-10">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pb-6 border-b border-gray-100 mb-6">
+                  <div>
+                    <span class="text-xs font-bold text-orange-600 tracking-widest uppercase block mb-1" id="roster-count">Alumnos</span>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight">Alumnos registrados</h3>
+                    <p class="text-sm text-gray-500 mt-1">Si un alumno olvida su contraseña, pulsa <strong>Restablecer</strong> y dale el código nuevo.</p>
+                  </div>
+                  <label class="roster-search" for="roster-search">
+                    <span class="sr-only">Buscar alumno</span>
+                    <input id="roster-search" type="search" placeholder="Buscar por nombre, matrícula o grupo" autocomplete="off" />
+                  </label>
+                </div>
+                <div class="roster-code" id="roster-code" role="status" hidden></div>
+                <div class="table-wrap overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead>
+                      <tr class="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        <th class="pb-3 px-2">Alumno</th>
+                        <th class="pb-3 px-2">Grupo</th>
+                        <th class="pb-3 px-2">Ahora</th>
+                        <th class="pb-3 px-2">Cuenta</th>
+                        <th class="pb-3 px-2"><span class="sr-only">Acciones</span></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 text-sm text-gray-700" id="roster-body"></tbody>
+                  </table>
+                </div>
               </div>
             </article>
           </section>
@@ -336,6 +388,57 @@
                 </div>
               </div>
             </article>
+
+            <!-- Reporte real: tiempo por alumno y app (historial del servidor) -->
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden history-report" id="history-report" hidden>
+              <div class="h-2.5 bg-gradient-to-r from-orange-600 to-orange-400 w-full"></div>
+              <div class="p-8 sm:p-10">
+                <div class="history-head">
+                  <div>
+                    <span class="text-xs font-bold text-orange-600 tracking-widest uppercase block mb-1" id="history-range">Hoy</span>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight" id="history-title">Uso del laboratorio</h3>
+                  </div>
+                  <div class="history-controls">
+                    <label class="sr-only" for="history-period">Periodo</label>
+                    <select id="history-period">
+                      <option value="0">Hoy</option>
+                      <option value="1">Ayer</option>
+                      <option value="7">Últimos 7 días</option>
+                      <option value="30">Últimos 30 días</option>
+                    </select>
+                    <label class="sr-only" for="history-student">Alumno</label>
+                    <select id="history-student"><option value="">Todos los alumnos</option></select>
+                    <button type="button" id="history-print">Imprimir</button>
+                  </div>
+                </div>
+                <div class="history-metrics" id="history-metrics"></div>
+                <div class="table-wrap overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead id="history-head"></thead>
+                    <tbody class="divide-y divide-gray-50 text-sm text-gray-700" id="history-body"></tbody>
+                  </table>
+                </div>
+                <p class="history-note">Solo se guarda el nombre de la app y si estaba permitida; de las páginas prohibidas, el sitio. No se guardan títulos de ventanas, textos ni teclas.</p>
+              </div>
+            </article>
+
+            <!-- Actividad registrada por las PCs mientras el servidor estaba apagado -->
+            <article class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto overflow-hidden mt-6 hidden" id="offline-report">
+              <div class="h-2.5 bg-gradient-to-r from-gray-700 to-gray-500 w-full"></div>
+              <div class="p-8 sm:p-10">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-6 border-b border-gray-100 mb-6">
+                  <div>
+                    <span class="text-xs font-bold text-gray-500 tracking-widest uppercase block mb-1">Últimos 7 días</span>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight">Actividad sin conexión</h3>
+                    <p class="text-sm text-gray-500 mt-1">Lo que registraron las PCs mientras el servidor estaba apagado. Sin servidor no hay inicio de sesión, así que se identifica por PC y usuario de Windows.</p>
+                  </div>
+                  <button type="button" id="offline-refresh" class="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shrink-0">Actualizar</button>
+                </div>
+                <div id="offline-report-body" class="space-y-6 text-sm text-gray-700">
+                  <p class="text-gray-400">Sin actividad sin conexión.</p>
+                </div>
+              </div>
+            </article>
           </section>
 
           <!-- Sección de configuración -->
@@ -346,30 +449,61 @@
                 <h3 class="text-2xl font-black text-gray-900 tracking-tight mb-6">Ajustes del Laboratorio</h3>
                 
                 <div class="space-y-6">
-                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div>
-                      <h4 class="text-sm font-bold text-gray-900">Bloqueo automático de aplicaciones no permitidas</h4>
-                      <p class="text-xs text-gray-500 mt-0.5">Restringe el uso de juegos y redes sociales automáticamente.</p>
+                  <div class="teacher-rule-panel">
+                    <div class="teacher-rule-header">
+                      <div>
+                        <span class="text-xs font-bold text-orange-600 tracking-widest uppercase block mb-1">Panel del maestro</span>
+                        <h4>Control de apps y páginas prohibidas</h4>
+                        <p>Activa el bloqueo para cerrar apps o páginas marcadas como no permitidas. Las excepciones permiten una página cuando sí forma parte de la clase.</p>
+                      </div>
+                      <label class="rule-switch">
+                        <input type="checkbox" id="rule-block-enabled" />
+                        <span></span>
+                        <strong id="rule-block-label">Solo alertas</strong>
+                      </label>
                     </div>
-                    <input type="checkbox" checked class="w-5 h-5 accent-orange-500 rounded cursor-pointer" />
+
+                    <div class="rule-grid">
+                      <div class="rule-box danger">
+                        <h5>Apps y páginas base</h5>
+                        <div class="rule-chips" id="blocked-list">Cargando reglas...</div>
+                      </div>
+                      <div class="rule-box web">
+                        <h5>Reglas web</h5>
+                        <div class="rule-chips" id="blocked-web-list">Cargando reglas web...</div>
+                      </div>
+                      <div class="rule-box allow">
+                        <h5>Excepciones activas</h5>
+                        <div class="rule-chips" id="exceptions-list">Sin excepciones por ahora.</div>
+                      </div>
+                    </div>
+
+                    <form class="web-rule-form" id="web-rule-form">
+                      <label for="web-rule-input">Agregar página, dominio o patrón prohibido</label>
+                      <div>
+                        <input id="web-rule-input" name="webRule" placeholder="agar.io, .io, youtube.com o palabra" autocomplete="off" />
+                        <button type="submit">Agregar</button>
+                      </div>
+                    </form>
+
+                    <form class="web-rule-form exception-form" id="exception-form">
+                      <label for="exception-input">Permitir una página o app como excepción</label>
+                      <div>
+                        <input id="exception-input" name="exception" placeholder="canva.com, classroom.google.com o scratch" autocomplete="off" />
+                        <button type="submit">Permitir</button>
+                      </div>
+                    </form>
+
+                    <p class="rule-hint">Para quitar una regla o una excepción, pulsa la ✕ de su etiqueta.</p>
+
+                    <div class="exception-actions">
+                      <button type="button" class="exception-btn notify" id="enable-browser-notifications">Activar notificaciones</button>
+                      <button type="button" class="exception-btn notify secondary" id="test-browser-notification">Probar notificación</button>
+                    </div>
+
+                    <p class="rule-note" id="rules-message">Los cambios se aplican a los agentes conectados en su siguiente reporte.</p>
                   </div>
 
-                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div>
-                      <h4 class="text-sm font-bold text-gray-900">Alertas de sonido en tiempo real</h4>
-                      <p class="text-xs text-gray-500 mt-0.5">Emitir aviso visual y sonoro cuando un equipo rompa las reglas.</p>
-                    </div>
-                    <input type="checkbox" checked class="w-5 h-5 accent-orange-500 rounded cursor-pointer" />
-                  </div>
-
-                  <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <h4 class="text-sm font-bold text-gray-900 mb-2">Tiempo límite predeterminado de sesión</h4>
-                    <p class="text-xs text-gray-500 mb-3">Ajusta la duración estándar de la clase en el laboratorio (bloques de 50 min o doble de 100 min).</p>
-                    <select class="bg-white border border-gray-200 text-sm font-semibold rounded-xl px-4 py-2.5 text-gray-700 focus:outline-none focus:border-orange-500 w-full sm:w-64">
-                      <option value="50">50 minutos (Sesión estándar)</option>
-                      <option value="100">100 minutos (Sesión doble)</option>
-                    </select>
-                  </div>
                 </div>
               </div>
             </article>
@@ -409,20 +543,22 @@
       <aside class="ai-panel" id="ai-panel" aria-hidden="true">
         <div class="ai-panel-header">
           <div>
-            <p class="eyebrow">LABCONTROL IA</p>
+            <p class="eyebrow">LABCONTROL · AYUDA</p>
             <h3>Asistente del docente</h3>
           </div>
           <button class="ai-close" id="ai-close" type="button" aria-label="Cerrar asistente">×</button>
         </div>
-        <p class="ai-disclaimer">Analiza únicamente los datos ficticios visibles en esta demo.</p>
+        <p class="ai-disclaimer">Resuelve dudas sobre cómo usar LabControl. Funciona sin internet y no envía datos a ningún lado.</p>
         <div class="ai-messages" id="ai-messages" aria-live="polite"></div>
         <div class="ai-suggestions">
+          <button type="button" data-ai-prompt="¿Qué es LabControl y para qué sirve?">¿Qué es LabControl?</button>
+          <button type="button" data-ai-prompt="¿Cómo bloqueo una página?">¿Cómo bloqueo una página?</button>
+          <button type="button" data-ai-prompt="¿Dónde veo las alertas?">¿Dónde veo las alertas?</button>
           <button type="button" data-ai-prompt="Resume el laboratorio">Resumen del día</button>
           <button type="button" data-ai-prompt="Detecta alertas">Detectar alertas</button>
-          <button type="button" data-ai-prompt="Identifica los módulos">Identificar módulos</button>
         </div>
         <form class="ai-form" id="ai-form">
-          <input id="ai-input" placeholder="Pregunta sobre la actividad..." autocomplete="off" />
+          <input id="ai-input" placeholder="Escribe tu pregunta..." autocomplete="off" />
           <button type="submit">Enviar</button>
         </form>
       </aside>

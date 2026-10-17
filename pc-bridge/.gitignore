@@ -1,0 +1,18 @@
+# Build and dependency output
+node_modules/
+dist/
+
+# Local deployment configuration and secrets
+.env
+.env.*
+!.env.example
+# config/labcontrol-config.json SI se sube: solo trae la URL y la llave publica,
+# y el instalador lo necesita para compilar.
+server/discovery-private.pem
+server/users.json
+
+# Local activity and user data
+server/audit.log
+server/history/*.json
+# Contrasenas de las cuentas demo para el simulador
+agent/mock-students.json
